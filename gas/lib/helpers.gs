@@ -37,12 +37,16 @@ this.tmLintAlignmentName = function(a) {
 };
 
 // 段落単位の汎用 Finding 構築。各 handler の繰り返しを減らすため。
+// startOffset/endOffset は段落内の文字オフセット（半開区間 [start, end)）。サイドバー UI から
+// google.script.run.tmLintJumpTo() で Range を構築するときに使う。
 this.tmLintMakeFinding_ = function(rule, opts) {
   return {
     ruleId: rule.id,
     severity: opts.severity || rule.severity || 'ERROR',
     guidelineRef: rule.guideline_ref || '',
     location: opts.location || { type: 'document', index: -1 },
+    startOffset: (typeof opts.startOffset === 'number') ? opts.startOffset : null,
+    endOffset: (typeof opts.endOffset === 'number') ? opts.endOffset : null,
     snippet: opts.snippet || '',
     message: opts.message || rule.message || '',
     implementationNote: opts.implementationNote || '',

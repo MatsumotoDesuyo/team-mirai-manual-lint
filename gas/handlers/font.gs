@@ -24,6 +24,8 @@ this.checkFontFamily = function(ctx, params, rule) {
 
       findings.push(tmLintMakeFinding_(rule, {
         location: { type: 'run', index: p.index, hint: '段落 ' + (i + 1) + ' / Run ' + (j + 1) },
+        startOffset: run.start,
+        endOffset: run.end,
         snippet: tmLintTruncate(run.text, 80),
         message: rule.message + '（実値: ' + run.fontFamily + '）'
       }));

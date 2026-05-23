@@ -78,6 +78,8 @@ function tmLintNormalizeFinding_(f, rule) {
     severity: f.severity || rule.severity || 'INFO',
     guidelineRef: f.guidelineRef || rule.guideline_ref || '',
     location: f.location || { type: 'document', index: -1 },
+    startOffset: (typeof f.startOffset === 'number') ? f.startOffset : null,
+    endOffset: (typeof f.endOffset === 'number') ? f.endOffset : null,
     snippet: f.snippet || '',
     message: f.message || rule.message || '',
     implementationNote: f.implementationNote || '',

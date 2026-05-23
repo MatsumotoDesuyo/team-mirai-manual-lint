@@ -38,6 +38,8 @@ this.extractAndValidateLinks = function(ctx, params, rule) {
 
       findings.push(tmLintMakeFinding_(rule, {
         location: { type: 'run', index: p.index, hint: '段落 ' + (i + 1) + ' / Run ' + (j + 1) },
+        startOffset: run.start,
+        endOffset: run.end,
         snippet: tmLintTruncate(run.text + ' → ' + run.linkUrl, 80),
         message: rule.message + '（不正 URL: ' + run.linkUrl + '）'
       }));

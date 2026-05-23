@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <style>
+    body {
+      font-family: 'Noto Sans JP', 'Hiragino Sans', Meiryo, Arial, sans-serif;
+      font-size: 12px;
+      margin: 0;
+      padding: 8px;
+      color: #222;
+    }
+    h3 { margin: 0 0 4px 0; font-size: 14px; }
+    .summary {
+      color: #555;
+      font-size: 11px;
+      margin-bottom: 8px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #ddd;
+    }
+    .summary .counts span {
+      display: inline-block;
+      margin-right: 8px;
+      font-weight: bold;
+    }
+    .summary .cnt-error { color: #c62828; }
+    .summary .cnt-warn { color: #f57f17; }
+    .summary .cnt-info { color: #1565c0; }
+    .notice {
+      background: #fff8e1;
+      padding: 6px 8px;
+      font-size: 11px;
+      border-radius: 3px;
+      margin-bottom: 8px;
+      color: #5d4037;
+    }
+    .section-heading {
+      font-weight: bold;
+      font-size: 11px;
+      margin-top: 12px;
+      margin-bottom: 4px;
+      padding: 3px 6px;
+      border-radius: 3px;
+    }
+    .section-ERROR { background: #ffebee; color: #c62828; }
+    .section-WARN  { background: #fffde7; color: #f57f17; }
+    .section-INFO  { background: #e3f2fd; color: #1565c0; }
+    .finding {
+      padding: 8px 8px;
+      cursor: pointer;
+      border-bottom: 1px solid #eee;
+      transition: background 0.1s;
+    }
+    .finding:hover { background: #f5f5f5; }
+    .finding.disabled { cursor: default; }
+    .finding.disabled:hover { background: transparent; }
+    .finding-header { display: flex; align-items: baseline; gap: 6px; }
+    .rule-id { font-weight: bold; font-size: 11px; }
+    .guideline-ref { color: #666; font-size: 10px; }
+    .message { margin: 4px 0 2px 0; line-height: 1.4; }
+    .snippet {
+      color: #444;
+      font-size: 11px;
+      background: #fafafa;
+      padding: 3px 6px;
+      border-left: 2px solid #ccc;
+      margin: 4px 0 0 0;
+      border-radius: 0 2px 2px 0;
+      word-break: break-all;
+    }
+    .meta {
+      display: flex;
+      gap: 8px;
+      font-size: 10px;
+      color: #888;
+      margin-top: 4px;
+    }
+    .impl-note { color: #999; font-size: 10px; font-style: italic; }
+    .empty {
+      color: #777;
+      padding: 16px;
+      text-align: center;
+      font-size: 12px;
+    }
+    .jump-hint { font-size: 10px; color: #1976d2; }
+  </style>
+</head>
+<body>
+  <h3>マニュアルチェック結果</h3>
+  <div class="summary">
+    実行: <?= timestamp ?><br>
+    <div class="counts">
+      <span class="cnt-error">ERROR <span id="cnt-error">0</span></span>
+      <span class="cnt-warn">WARN <span id="cnt-warn">0</span></span>
+      <span class="cnt-info">INFO <span id="cnt-info">0</span></span>
+    </div>
+  </div>
+
+  <div id="todo-notice" style="display:none" class="notice"></div>
+
+  <div id="findings"></div>
+
+  <script>
+    var FINDINGS = <?!= JSON.stringify(findings) ?>;
+
+    function isJumpable(f) {
+      if (!f.location) return false;
+      if (f.location.type !== 'paragraph' && f.location.type !== 'run') return false;
+      if (typeof f.location.index !== 'number' || f.location.index < 0) return false;
+      return true;
+    }
+
+    function escapeHtml(s) {
+      if (s == null) return '';
+      return String(s)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    function jumpTo(idx) {
+      var f = FINDINGS[idx];
+      if (!isJumpable(f)) return;
+      var startOffset = (typeof f.startOffset === 'number') ? f.startOffset : null;
+      var endOffset = (typeof f.endOffset === 'number') ? f.endOffset : null;
+      google.script.run
+        .withFailureHandler(function(err) {
+          console.error('jumpTo failed:', err);
+        })
+        .tmLintJumpTo(f.location.index, startOffset, endOffset);
+    }
+
+    function renderFinding(f, idx) {
+      var jumpable = isJumpable(f);
+      var hint = (f.location && f.location.hint) ? f.location.hint : '';
+      var html = '';
+      html += '<div class="finding ' + (jumpable ? '' : 'disabled') + '"';
+      if (jumpable) html += ' onclick="jumpTo(' + idx + ')"';
+      html += '>';
+      html += '<div class="finding-header">';
+      html += '<span class="rule-id">[' + escapeHtml(f.ruleId) + ']</span>';
+      if (f.guidelineRef) {
+        html += '<span class="guideline-ref">' + escapeHtml(f.guidelineRef) + '</span>';
+      }
+      html += '</div>';
+      if (f.message) html += '<div class="message">' + escapeHtml(f.message) + '</div>';
+      if (f.snippet) html += '<div class="snippet">' + escapeHtml(f.snippet) + '</div>';
+      var metaParts = [];
+      if (hint) metaParts.push('位置: ' + escapeHtml(hint));
+      if (jumpable) metaParts.push('<span class="jump-hint">▶ クリックで該当箇所へ</span>');
+      if (metaParts.length) html += '<div class="meta">' + metaParts.join(' / ') + '</div>';
+      if (f.implementationNote) html += '<div class="impl-note">実装方針: ' + escapeHtml(f.implementationNote) + '</div>';
+      html += '</div>';
+      return html;
+    }
+
+    function render() {
+      var grouped = { ERROR: [], WARN: [], INFO: [] };
+      var todoCount = 0;
+      for (var i = 0; i < FINDINGS.length; i++) {
+        var sev = FINDINGS[i].severity || 'INFO';
+        if (!grouped[sev]) sev = 'INFO';
+        grouped[sev].push(i);
+        if (FINDINGS[i].implementationNote) todoCount++;
+      }
+      document.getElementById('cnt-error').textContent = grouped.ERROR.length;
+      document.getElementById('cnt-warn').textContent = grouped.WARN.length;
+      document.getElementById('cnt-info').textContent = grouped.INFO.length;
+
+      if (todoCount > 0) {
+        var notice = document.getElementById('todo-notice');
+        notice.style.display = '';
+        notice.textContent = '未実装ハンドラ ' + todoCount + ' 件（INFO セクションを参照）';
+      }
+
+      var container = document.getElementById('findings');
+      if (FINDINGS.length === 0) {
+        container.innerHTML = '<div class="empty">指摘はありません</div>';
+        return;
+      }
+
+      var html = '';
+      var sections = [
+        { key: 'ERROR', label: 'ERROR（決定論違反）' },
+        { key: 'WARN',  label: 'WARN（LLM 助言）' },
+        { key: 'INFO',  label: 'INFO（人間確認 / 雛形）' }
+      ];
+      for (var s = 0; s < sections.length; s++) {
+        var ids = grouped[sections[s].key];
+        if (ids.length === 0) continue;
+        html += '<div class="section-heading section-' + sections[s].key + '">'
+              + sections[s].label + ' (' + ids.length + ')</div>';
+        for (var j = 0; j < ids.length; j++) {
+          html += renderFinding(FINDINGS[ids[j]], ids[j]);
+        }
+      }
+      container.innerHTML = html;
+    }
+
+    render();
+  </script>
+</body>
+</html>
