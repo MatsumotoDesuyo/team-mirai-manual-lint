@@ -101,6 +101,9 @@ this.checkContrast = function(ctx, params, rule) {
     large_bold_size_pt: 14
   };
 
+  var exempt = params.exempt_contexts || [];
+  var exemptLink = exempt.indexOf('link') !== -1;
+
   var findings = [];
 
   for (var i = 0; i < ctx.walked.paragraphs.length; i++) {
@@ -108,6 +111,8 @@ this.checkContrast = function(ctx, params, rule) {
     for (var j = 0; j < p.runs.length; j++) {
       var run = p.runs[j];
       if (!run.text || !run.text.trim()) continue;
+      // リンクは Google Docs 既定の青系（#1155cc）。ガイドライン的に許容されるためコントラスト検査の対象外。
+      if (exemptLink && run.linkUrl) continue;
 
       var fg = run.effectiveForeground || '#000000';
       var bg = run.effectiveBackground || '#ffffff';

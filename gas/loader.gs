@@ -74,7 +74,13 @@ function tmLintRun() {
     tmLintRenderReport(doc, findings, { rulesVersion: rules.version, ref: TM_LINT_CONFIG.ref });
 
     // サイドバー UI を表示（クリックで該当箇所にジャンプ）。
-    tmLintShowSidebar_(findings);
+    var sha = tmLintFetchCommitSha_();
+    tmLintShowSidebar_(findings, {
+      sha: sha,
+      docId: doc.getId(),
+      rulesVersion: rules.version,
+      ref: TM_LINT_CONFIG.ref
+    });
   } catch (e) {
     ui.alert('エラー: ' + e.message + '\n\n' + (e.stack || ''));
   }
@@ -126,7 +132,8 @@ function _tmLintAdvancedDocsScopeHint_() {
  *
  * HTML テンプレート本体は gas/sidebar.html としてリモート配信し、ロジック側だけバウンド。
  */
-function tmLintShowSidebar_(findings) {
+function tmLintShowSidebar_(findings, meta) {
+  meta = meta || {};
   var htmlUrl = TM_LINT_CONFIG.rawBase + '/gas/sidebar.html?cb=' + Date.now();
   var htmlText = tmLintFetchText_(htmlUrl);
 
@@ -137,10 +144,40 @@ function tmLintShowSidebar_(findings) {
     Session.getScriptTimeZone() || 'Asia/Tokyo',
     'yyyy-MM-dd HH:mm'
   );
+  template.sha = meta.sha || '';
+  template.docId = meta.docId || '';
+  template.rulesVersion = meta.rulesVersion || '';
+  template.ref = meta.ref || '';
   var output = template.evaluate()
     .setTitle('マニュアルチェック')
     .setWidth(360);
   DocumentApp.getUi().showSidebar(output);
+}
+
+/**
+ * 現在の ref（main 既定）の最新コミット SHA を GitHub API から取得。
+ * 取得できなかった場合は空文字を返す（サイドバー UI 側でフォールバック表示）。
+ * 未認証で 60 req/h 制限あり。実行ごとに 1 回呼ぶ程度なら通常範囲内。
+ */
+function tmLintFetchCommitSha_() {
+  try {
+    var rawBase = TM_LINT_CONFIG.rawBase;
+    // rawBase: https://raw.githubusercontent.com/<owner>/<repo>/<branch>
+    var m = rawBase.match(/raw\.githubusercontent\.com\/([^/]+)\/([^/]+)\/([^/]+)/);
+    if (!m) return '';
+    var apiUrl = 'https://api.github.com/repos/' + m[1] + '/' + m[2] + '/branches/' + m[3];
+    var res = UrlFetchApp.fetch(apiUrl, {
+      muteHttpExceptions: true,
+      followRedirects: true,
+      headers: { 'Accept': 'application/vnd.github+json' }
+    });
+    if (res.getResponseCode() < 200 || res.getResponseCode() >= 300) return '';
+    var data = JSON.parse(res.getContentText('UTF-8'));
+    if (data && data.commit && data.commit.sha) {
+      return data.commit.sha.substring(0, 7);
+    }
+  } catch (e) {}
+  return '';
 }
 
 /**

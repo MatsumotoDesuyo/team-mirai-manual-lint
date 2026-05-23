@@ -133,7 +133,10 @@
       "guideline_ref": "§2 配色 / WCAG コントラスト比",
       "severity": "ERROR",
       "handler": "checkContrast",
-      "params": { "use_common_wcag": true },
+      "params": {
+        "use_common_wcag": true,
+        "exempt_contexts": ["link"]
+      },
       "message": "文字色と背景色のコントラスト比が WCAG 基準（本文 4.5:1、大型 3:1）を満たしていません。"
     },
     {
