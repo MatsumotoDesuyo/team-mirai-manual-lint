@@ -264,6 +264,18 @@
         ]
       },
       "message": "漢字が連続して 6 字を超えています。"
+    },
+    {
+      "id": "B-TEXT-014",
+      "guideline_ref": "§3 表現の簡潔化 / 能動態使用・受動態回避",
+      "severity": "WARN",
+      "layer": "B",
+      "handler": "llm.checkPassiveVoice",
+      "params": {
+        "prompt_template": "passive_voice",
+        "max_examples": 15
+      },
+      "message": "受動態が使われています。能動態（誰が何をするか）で書き直してください。"
     }
   ]
 }

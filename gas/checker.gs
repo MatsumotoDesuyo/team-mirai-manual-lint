@@ -22,6 +22,9 @@ this.tmLintExecuteChecks = function(doc, rules) {
 
   for (var i = 0; i < rules.rules.length; i++) {
     var rule = rules.rules[i];
+    // Layer A 以外（B / C / OUT）は GAS では処理しない。Layer B は CLI（cli/）で実行。
+    // 後方互換: rule.layer が無い場合は A とみなす。
+    if (rule.layer && rule.layer !== 'A') continue;
     var fn = this[rule.handler];
     if (typeof fn !== 'function') {
       findings.push({

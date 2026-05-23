@@ -1,0 +1,21 @@
+{
+  "name": "team-mirai-manual-lint-cli",
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Layer B (LLM 意味判定) CLI for team-mirai-manual-lint",
+  "private": true,
+  "scripts": {
+    "auth": "node src/auth.js",
+    "lint": "node src/index.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.30.1",
+    "@google-cloud/local-auth": "^3.0.1",
+    "dotenv": "^16.4.5",
+    "googleapis": "^144.0.0",
+    "yargs": "^17.7.2"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
