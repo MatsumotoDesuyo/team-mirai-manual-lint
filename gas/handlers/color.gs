@@ -34,13 +34,4 @@ this.checkContrast = function(ctx, params, rule) {
   return [tmLintTodoFinding_(rule, 'lib/contrast.gs の tmLintContrastRatio を使用')];
 };
 
-function tmLintTodoFinding_(rule, hint) {
-  return {
-    ruleId: rule.id,
-    severity: 'INFO',
-    location: { type: 'document', index: -1, hint: 'TODO' },
-    snippet: '',
-    message: '[TODO 雛形] ' + rule.id + ' は未実装。実装方針: ' + hint,
-    autoFixable: false
-  };
-}
+// tmLintTodoFinding_ は gas/lib/helpers.gs で共通定義（loader.gs の files 順で先にロードされる）。

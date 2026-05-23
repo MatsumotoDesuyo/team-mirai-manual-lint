@@ -17,6 +17,7 @@ var TM_LINT_CONFIG = {
   rawBase: 'https://raw.githubusercontent.com/MatsumotoDesuyo/team-mirai-manual-lint/main',
   ref: 'main',
   files: [
+    'gas/lib/helpers.gs',
     'gas/lib/contrast.gs',
     'gas/lib/docwalk.gs',
     'gas/handlers/color.gs',
