@@ -35,7 +35,6 @@ var TM_LINT_CONFIG = {
     'gas/handlers/link.gs',
     'gas/handlers/text.gs',
     'gas/report.gs',
-    'gas/sidebar.gs',
     'gas/checker.gs'
   ],
   rulesPath: 'rules.json'
@@ -75,11 +74,7 @@ function tmLintRun() {
     tmLintRenderReport(doc, findings, { rulesVersion: rules.version, ref: TM_LINT_CONFIG.ref });
 
     // サイドバー UI を表示（クリックで該当箇所にジャンプ）。
-    if (typeof tmLintShowSidebar === 'function') {
-      tmLintShowSidebar(findings);
-    } else {
-      ui.alert('チェック完了: ' + findings.length + ' 件（サイドバー機能が読み込めませんでした。末尾レポートを参照）');
-    }
+    tmLintShowSidebar_(findings);
   } catch (e) {
     ui.alert('エラー: ' + e.message + '\n\n' + (e.stack || ''));
   }
@@ -103,6 +98,34 @@ function tmLintFetchText_(url) {
     throw new Error('取得失敗: ' + url + ' (HTTP ' + code + ')');
   }
   return res.getContentText('UTF-8');
+}
+
+/**
+ * サイドバーを表示する。
+ *
+ * 静的に loader.gs に置く理由:
+ * Apps Script は loader.gs に静的に書かれた GAS API 呼び出しを解析して必要 OAuth スコープを
+ * 自動推測する。`DocumentApp.getUi().showSidebar(...)` には `script.container.ui` スコープが
+ * 必要だが、これをリモート（eval ロード）に置くと静的解析がスコープを要求してくれず、
+ * 「指定された権限では Ui.showSidebar を呼び出すことができません」エラーで死ぬ。
+ *
+ * HTML テンプレート本体は gas/sidebar.html としてリモート配信し、ロジック側だけバウンド。
+ */
+function tmLintShowSidebar_(findings) {
+  var htmlUrl = TM_LINT_CONFIG.rawBase + '/gas/sidebar.html?cb=' + Date.now();
+  var htmlText = tmLintFetchText_(htmlUrl);
+
+  var template = HtmlService.createTemplate(htmlText);
+  template.findings = findings;
+  template.timestamp = Utilities.formatDate(
+    new Date(),
+    Session.getScriptTimeZone() || 'Asia/Tokyo',
+    'yyyy-MM-dd HH:mm'
+  );
+  var output = template.evaluate()
+    .setTitle('マニュアルチェック')
+    .setWidth(360);
+  DocumentApp.getUi().showSidebar(output);
 }
 
 /**
