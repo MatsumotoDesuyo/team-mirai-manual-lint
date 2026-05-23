@@ -1,0 +1,248 @@
+{
+  "version": "0.1.0",
+  "generated_from": "rules-matrix.md",
+  "notes": "Layer A（決定論・GAS）ルールのみを収録。各 rule の handler は gas/handlers/*.gs の関数名と 1:1 対応。Layer B / OUT 系は本ファイルに含めない。",
+  "common": {
+    "tolerance": {
+      "margin_pt": 1,
+      "line_spacing": 0.01,
+      "color_hex": 2
+    },
+    "wcag": {
+      "contrast_normal": 4.5,
+      "contrast_large": 3.0,
+      "large_size_pt": 18,
+      "large_bold_size_pt": 14
+    }
+  },
+  "rules": [
+    {
+      "id": "A-LAYOUT-001",
+      "guideline_ref": "§2 基本設定 / 余白 2cm 上下左右",
+      "severity": "ERROR",
+      "handler": "checkMargins",
+      "params": { "margin_cm": 2 },
+      "message": "ページ余白が上下左右 2cm に設定されていません。"
+    },
+    {
+      "id": "A-LAYOUT-002",
+      "guideline_ref": "§2 文字の位置 / 左揃え",
+      "severity": "ERROR",
+      "handler": "checkLeftAlignment",
+      "params": { "exempt_contexts": ["table_cell"] },
+      "message": "段落配置が左揃え以外になっています。"
+    },
+    {
+      "id": "A-LAYOUT-003",
+      "guideline_ref": "§2 文字の位置 / 段落初め字下げなし",
+      "severity": "ERROR",
+      "handler": "checkFirstLineIndent",
+      "params": { "first_line_indent_pt": 0 },
+      "message": "段落初めの字下げが設定されています（字下げは行わず段落間のスペースで区切ること）。"
+    },
+    {
+      "id": "A-LAYOUT-004",
+      "guideline_ref": "§2 フォント / 行間 1.15",
+      "severity": "ERROR",
+      "handler": "checkLineSpacing",
+      "params": { "line_spacing": 1.15 },
+      "message": "段落の行間が 1.15 に設定されていません。"
+    },
+    {
+      "id": "A-FONT-001",
+      "guideline_ref": "§2 フォントファミリ / Noto Sans JP・Noto Sans",
+      "severity": "ERROR",
+      "handler": "checkFontFamily",
+      "params": { "allowed_fonts": ["Noto Sans JP", "Noto Sans"] },
+      "message": "Noto Sans JP / Noto Sans 以外のフォントが使用されています。"
+    },
+    {
+      "id": "A-FONT-002",
+      "guideline_ref": "§2 見出しレベル / タイトル 21pt 太字",
+      "severity": "ERROR",
+      "handler": "checkHeadingStyle",
+      "params": { "heading_type": "TITLE", "size_pt": 21, "bold": true },
+      "message": "タイトルのスタイルが 21pt 太字になっていません。"
+    },
+    {
+      "id": "A-FONT-003",
+      "guideline_ref": "§2 見出しレベル / 見出し 1 18pt 太字",
+      "severity": "ERROR",
+      "handler": "checkHeadingStyle",
+      "params": { "heading_type": "HEADING1", "size_pt": 18, "bold": true },
+      "message": "見出し 1 のスタイルが 18pt 太字になっていません。"
+    },
+    {
+      "id": "A-FONT-004",
+      "guideline_ref": "§2 見出しレベル / 見出し 2 15pt 太字",
+      "severity": "ERROR",
+      "handler": "checkHeadingStyle",
+      "params": { "heading_type": "HEADING2", "size_pt": 15, "bold": true },
+      "message": "見出し 2 のスタイルが 15pt 太字になっていません。"
+    },
+    {
+      "id": "A-FONT-005",
+      "guideline_ref": "§2 見出しレベル / 見出し 3 13pt 太字",
+      "severity": "ERROR",
+      "handler": "checkHeadingStyle",
+      "params": { "heading_type": "HEADING3", "size_pt": 13, "bold": true },
+      "message": "見出し 3 のスタイルが 13pt 太字になっていません。"
+    },
+    {
+      "id": "A-FONT-006",
+      "guideline_ref": "§2 見出しレベル / 本文 11pt 標準",
+      "severity": "ERROR",
+      "handler": "checkHeadingStyle",
+      "params": { "heading_type": "NORMAL", "size_pt": 11, "bold": false, "allow_bold_for_emphasis": true },
+      "message": "本文のスタイルが 11pt 標準になっていません。"
+    },
+    {
+      "id": "A-FONT-007",
+      "guideline_ref": "§2 フォント / 11pt 未満禁止（引用例外）",
+      "severity": "ERROR",
+      "handler": "checkMinFontSize",
+      "params": { "min_size_pt": 11, "exempt_contexts": ["quote_block"] },
+      "message": "11pt 未満のフォントサイズが使用されています（引用以外では禁止）。"
+    },
+    {
+      "id": "A-COLOR-001",
+      "guideline_ref": "§2 配色 / 基本文字色 #000000",
+      "severity": "ERROR",
+      "handler": "checkDefaultTextColor",
+      "params": { "default_color": "#000000", "exempt_contexts": ["link", "table_header_row"] },
+      "message": "本文文字色が #000000（黒 100%）以外になっています。"
+    },
+    {
+      "id": "A-COLOR-002",
+      "guideline_ref": "§2 配色 / ミントグリーン #64d8c6 文字色不使用",
+      "severity": "ERROR",
+      "handler": "checkForbiddenTextColor",
+      "params": { "forbidden_colors": ["#64d8c6"] },
+      "message": "本文文字色にチームみらいミントグリーン（#64d8c6）が使用されています。コントラスト不足のため使用不可です。"
+    },
+    {
+      "id": "A-COLOR-003",
+      "guideline_ref": "§2 配色 / 強調背景は #b4f2e8 のみ可",
+      "severity": "ERROR",
+      "handler": "checkAllowedHighlightColor",
+      "params": { "allowed_highlights": [null, "#b4f2e8"] },
+      "message": "強調用の文字背景色が #b4f2e8（明るいミントグリーン）以外に設定されています。"
+    },
+    {
+      "id": "A-COLOR-004",
+      "guideline_ref": "§2 配色 / WCAG コントラスト比",
+      "severity": "ERROR",
+      "handler": "checkContrast",
+      "params": { "use_common_wcag": true },
+      "message": "文字色と背景色のコントラスト比が WCAG 基準（本文 4.5:1、大型 3:1）を満たしていません。"
+    },
+    {
+      "id": "A-EMPHASIS-001",
+      "guideline_ref": "§2 配色 / 強調比率 ≦ 1割",
+      "severity": "ERROR",
+      "handler": "checkEmphasisRatio",
+      "params": {
+        "max_ratio": 0.1,
+        "emphasis_definition": ["bold", "highlight_b4f2e8"],
+        "scope": "body_paragraphs"
+      },
+      "message": "本文中の強調（太字・ミントグリーン背景）が全体の 1 割を超えています。"
+    },
+    {
+      "id": "A-CHARS-001",
+      "guideline_ref": "§2 配色 / 絵文字・機種依存文字",
+      "severity": "ERROR",
+      "handler": "checkForbiddenChars",
+      "params": {
+        "forbidden_unicode_categories": ["Emoji_Presentation", "Extended_Pictographic"],
+        "forbidden_codepoints": ["①-⑳", "⒈-⒇", "㈠-㈩"],
+        "allowed_symbols": ["⭕", "❌", "✅"]
+      },
+      "message": "絵文字または機種依存文字が使用されています。"
+    },
+    {
+      "id": "A-TABLE-001",
+      "guideline_ref": "§2 表のデザイン / 見出し行 文字 #ffffff・背景 #666666",
+      "severity": "ERROR",
+      "handler": "checkTableHeaderRow",
+      "params": { "bg": "#666666", "fg": "#ffffff" },
+      "message": "表の見出し行が「文字 #ffffff／背景 #666666」になっていません。"
+    },
+    {
+      "id": "A-TABLE-002",
+      "guideline_ref": "§2 表のデザイン / 見出し列 文字 #000000・背景 #666666",
+      "severity": "ERROR",
+      "handler": "checkTableHeaderColumn",
+      "params": { "bg": "#666666", "fg": "#000000" },
+      "message": "表の見出し列が「文字 #000000／背景 #666666」になっていません。"
+    },
+    {
+      "id": "A-TABLE-003",
+      "guideline_ref": "§2 表のデザイン / 罫線 #ffffff 1pt",
+      "severity": "ERROR",
+      "handler": "checkTableBorder",
+      "params": { "color": "#ffffff", "width_pt": 1 },
+      "message": "表の罫線が「色 #ffffff／太さ 1pt」になっていません。"
+    },
+    {
+      "id": "A-META-001",
+      "guideline_ref": "§2 基本設定 / ページ番号フッター右下 1/5 形式",
+      "severity": "ERROR",
+      "handler": "checkFooterPageNumber",
+      "params": {
+        "alignment": "RIGHT",
+        "pattern": ".*\\d+\\s*/\\s*\\d+.*",
+        "require_dynamic": true
+      },
+      "message": "フッター右下に「現在ページ / 総ページ数」形式のページ番号が設定されていません。"
+    },
+    {
+      "id": "A-META-002",
+      "guideline_ref": "§2 作成後の確認 / 作成日・更新日記載",
+      "severity": "ERROR",
+      "handler": "checkCreatedUpdatedDate",
+      "params": {
+        "patterns": [
+          "作成日[:：]\\s*\\d{4}[/\\-年]\\d{1,2}[/\\-月]\\d{1,2}",
+          "更新日[:：]\\s*\\d{4}[/\\-年]\\d{1,2}[/\\-月]\\d{1,2}",
+          "\\d{4}年\\d{1,2}月\\d{1,2}日(?:作成|更新)"
+        ],
+        "scope": "last_n_paragraphs",
+        "scope_value": 10
+      },
+      "message": "本文末尾に作成日・更新日の記載が見つかりません。"
+    },
+    {
+      "id": "A-LINK-001",
+      "guideline_ref": "§2 作成後の確認 / リンク抽出（URL 形式）",
+      "severity": "ERROR",
+      "handler": "extractAndValidateLinks",
+      "params": { "url_pattern": "^https?://[^\\s]+$", "scope": "all" },
+      "message": "URL 形式が不正なリンクが含まれています。"
+    },
+    {
+      "id": "A-LINK-002",
+      "guideline_ref": "§5 参考URL / URL 形式の妥当性",
+      "severity": "ERROR",
+      "handler": "extractAndValidateLinks",
+      "params": { "url_pattern": "^https?://[^\\s]+$", "scope": "reference_section" },
+      "message": "参考URL節に URL 形式不正のリンクが含まれています。"
+    },
+    {
+      "id": "A-TEXT-001",
+      "guideline_ref": "§3 文章の基本 / 読点 1文3つまで",
+      "severity": "ERROR",
+      "handler": "checkMaxCommasPerSentence",
+      "params": { "max_commas": 3, "exempt_contexts": ["quote", "legal_text"] },
+      "message": "1 文中の読点（、）が 3 つを超えています。"
+    },
+    {
+      "id": "A-TEXT-002",
+      "guideline_ref": "§3 文章の基本 / 漢字連続 6字以下",
+      "severity": "ERROR",
+      "handler": "checkMaxKanjiRun",
+      "params": { "max_run": 6, "exempt_proper_nouns": true },
+      "message": "漢字が連続して 6 字を超えています。"
+    }
+  ]
+}
