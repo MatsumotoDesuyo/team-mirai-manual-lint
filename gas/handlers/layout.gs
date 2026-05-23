@@ -54,6 +54,8 @@ this.checkFirstLineIndent = function(ctx, params, rule) {
   var findings = [];
   for (var i = 0; i < ctx.walked.paragraphs.length; i++) {
     var p = ctx.walked.paragraphs[i];
+    // ListItem（箇条書き）のインデントはネスト深度由来であり、ガイドラインの「段落初めの字下げ」とは別概念。除外。
+    if (p.isListItem) continue;
     var indent = p.firstLineIndent;
     if (indent === null) continue; // 未設定 = 0 既定
     if (Math.abs(indent - expected) <= 0.5) continue;

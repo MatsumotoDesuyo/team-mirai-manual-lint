@@ -30,6 +30,7 @@ this.tmLintWalkDoc = function(doc) {
     paragraphs.push({
       paragraph: para,
       index: i,
+      isListItem: (type === DocumentApp.ElementType.LIST_ITEM),
       headingType: tmLintSafeGetHeading_(para),
       alignment: tmLintSafeGetAlignment_(para),
       lineSpacing: tmLintSafeGetLineSpacing_(para),
