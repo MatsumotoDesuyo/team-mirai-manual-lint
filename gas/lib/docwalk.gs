@@ -2,56 +2,60 @@
  * lib/docwalk.gs — Document を走査して段落 / Run / 表構造を返す。
  *
  * 段落・Run 走査は editAsText().getTextAttributeIndices() ベースで分解。
- * namedStyles 継承解決は Advanced Docs Service `Docs.Documents.get` で取得し、
- * 各 HeadingType の既定 textStyle を解決マップに展開、各 Run の null 属性に注入する。
+ * namedStyles 継承解決は Advanced Docs Service `Docs.Documents.get` で取得。
+ * 表セルの罫線情報も Advanced Docs Service の tableCellStyle.borderXxx から取得。
  *
- * Advanced Docs Service が未有効化の場合、namedStylesMap が null となり、
- * effective 系の値は run の生属性のみで決まる（継承解決なし）。
- *
- * 未対応（次フェーズ）:
- *   - tables の本走査（表セル内段落の Run 分解）
- *   - footerParagraphs
+ * Advanced Docs Service が未有効化の場合、namedStylesMap = null、各 table.borders = null。
+ * handler 側で namedStylesAvailable をチェックして TODO Finding 化する。
  */
 
 this.tmLintWalkDoc = function(doc) {
   var body = doc.getBody();
   var paragraphs = [];
+  var tables = [];
   var totalChildren = body.getNumChildren();
 
-  // Advanced Docs Service で namedStyles を解決（有効化されていれば）。
-  var namedStylesMap = tmLintResolveNamedStyles_(doc);
+  // Advanced Docs Service で namedStyles と表の罫線情報を一度に取得。
+  var advanced = tmLintFetchAdvancedDocsData_(doc);
+  var namedStylesMap = advanced ? advanced.namedStylesMap : null;
+  var tableBorders = advanced ? advanced.tableBorders : null;
 
+  var tableSeq = 0;
   for (var i = 0; i < totalChildren; i++) {
     var element = body.getChild(i);
     var type = element.getType();
-    if (type !== DocumentApp.ElementType.PARAGRAPH &&
-        type !== DocumentApp.ElementType.LIST_ITEM) continue;
 
-    var para = (type === DocumentApp.ElementType.PARAGRAPH)
-      ? element.asParagraph()
-      : element.asListItem();
-
-    var headingType = tmLintSafeGetHeading_(para);
-    var headingKey = tmLintHeadingToKey_(headingType);
-    var inheritedStyle = (namedStylesMap && namedStylesMap[headingKey]) ? namedStylesMap[headingKey] : null;
-
-    paragraphs.push({
-      paragraph: para,
-      index: i,
-      isListItem: (type === DocumentApp.ElementType.LIST_ITEM),
-      headingType: headingType,
-      headingKey: headingKey,
-      alignment: tmLintSafeGetAlignment_(para),
-      lineSpacing: tmLintSafeGetLineSpacing_(para),
-      firstLineIndent: tmLintSafeGetIndent_(para),
-      text: para.getText(),
-      runs: tmLintExtractRuns_(para, inheritedStyle)
-    });
+    if (type === DocumentApp.ElementType.PARAGRAPH ||
+        type === DocumentApp.ElementType.LIST_ITEM) {
+      var para = (type === DocumentApp.ElementType.PARAGRAPH)
+        ? element.asParagraph()
+        : element.asListItem();
+      var headingType = tmLintSafeGetHeading_(para);
+      var headingKey = tmLintHeadingToKey_(headingType);
+      var inheritedStyle = (namedStylesMap && namedStylesMap[headingKey]) ? namedStylesMap[headingKey] : null;
+      paragraphs.push({
+        paragraph: para,
+        index: i,
+        isListItem: (type === DocumentApp.ElementType.LIST_ITEM),
+        headingType: headingType,
+        headingKey: headingKey,
+        alignment: tmLintSafeGetAlignment_(para),
+        lineSpacing: tmLintSafeGetLineSpacing_(para),
+        firstLineIndent: tmLintSafeGetIndent_(para),
+        text: para.getText(),
+        runs: tmLintExtractRuns_(para, inheritedStyle)
+      });
+    } else if (type === DocumentApp.ElementType.TABLE) {
+      var table = element.asTable();
+      var borders = (tableBorders && tableBorders[tableSeq]) ? tableBorders[tableSeq] : null;
+      tables.push(tmLintExtractTable_(table, i, tableSeq, borders, namedStylesMap));
+      tableSeq++;
+    }
   }
 
   return {
     paragraphs: paragraphs,
-    tables: [],
+    tables: tables,
     footerParagraphs: [],
     namedStylesMap: namedStylesMap,
     namedStylesAvailable: (namedStylesMap !== null)
@@ -59,39 +63,139 @@ this.tmLintWalkDoc = function(doc) {
 };
 
 /**
- * Advanced Docs Service `Docs.Documents.get` で namedStyles を取得して
- * { TITLE: {...}, HEADING1: {...}, ..., NORMAL: {...} } の解決マップに変換。
- * Advanced Service 未有効化なら null を返す。
+ * Advanced Docs Service `Docs.Documents.get` で必要な情報を一括取得:
+ *   - namedStyles 解決マップ
+ *   - 表ごとのセル罫線情報配列
  */
-function tmLintResolveNamedStyles_(doc) {
+function tmLintFetchAdvancedDocsData_(doc) {
   if (typeof Docs === 'undefined' || !Docs.Documents) {
     return null;
   }
   try {
-    var docId = doc.getId();
-    var docResource = Docs.Documents.get(docId);
-    if (!docResource || !docResource.namedStyles || !docResource.namedStyles.styles) {
-      return null;
+    var docResource = Docs.Documents.get(doc.getId());
+    if (!docResource) return null;
+
+    var namedStylesMap = null;
+    if (docResource.namedStyles && docResource.namedStyles.styles) {
+      namedStylesMap = {};
+      var styles = docResource.namedStyles.styles;
+      for (var i = 0; i < styles.length; i++) {
+        var ns = styles[i];
+        var key = tmLintNamedStyleTypeToKey_(ns.namedStyleType);
+        if (!key) continue;
+        var ts = ns.textStyle || {};
+        namedStylesMap[key] = {
+          fontFamily: (ts.weightedFontFamily && ts.weightedFontFamily.fontFamily) ? ts.weightedFontFamily.fontFamily : null,
+          fontSize: (ts.fontSize && typeof ts.fontSize.magnitude === 'number') ? ts.fontSize.magnitude : null,
+          bold: (typeof ts.bold === 'boolean') ? ts.bold : null,
+          foreground: ts.foregroundColor ? tmLintDocsColorToHex_(ts.foregroundColor) : null,
+          background: ts.backgroundColor ? tmLintDocsColorToHex_(ts.backgroundColor) : null
+        };
+      }
     }
-    var map = {};
-    var styles = docResource.namedStyles.styles;
-    for (var i = 0; i < styles.length; i++) {
-      var ns = styles[i];
-      var key = tmLintNamedStyleTypeToKey_(ns.namedStyleType);
-      if (!key) continue;
-      var ts = ns.textStyle || {};
-      map[key] = {
-        fontFamily: (ts.weightedFontFamily && ts.weightedFontFamily.fontFamily) ? ts.weightedFontFamily.fontFamily : null,
-        fontSize: (ts.fontSize && typeof ts.fontSize.magnitude === 'number') ? ts.fontSize.magnitude : null,
-        bold: (typeof ts.bold === 'boolean') ? ts.bold : null,
-        foreground: ts.foregroundColor ? tmLintDocsColorToHex_(ts.foregroundColor) : null,
-        background: ts.backgroundColor ? tmLintDocsColorToHex_(ts.backgroundColor) : null
-      };
+
+    // 表ごとの罫線情報。body.content[] の table のみを順に取り出す。
+    var tableBorders = [];
+    var content = (docResource.body && docResource.body.content) ? docResource.body.content : [];
+    for (var c = 0; c < content.length; c++) {
+      var elt = content[c];
+      if (!elt.table) continue;
+      var rows = elt.table.tableRows || [];
+      var rowBorders = [];
+      for (var r = 0; r < rows.length; r++) {
+        var cells = rows[r].tableCells || [];
+        var cellBorders = [];
+        for (var cc = 0; cc < cells.length; cc++) {
+          var cs = cells[cc].tableCellStyle || {};
+          cellBorders.push({
+            top: tmLintParseBorder_(cs.borderTop),
+            bottom: tmLintParseBorder_(cs.borderBottom),
+            left: tmLintParseBorder_(cs.borderLeft),
+            right: tmLintParseBorder_(cs.borderRight),
+            backgroundColor: cs.backgroundColor ? tmLintDocsColorToHex_(cs.backgroundColor) : null
+          });
+        }
+        rowBorders.push(cellBorders);
+      }
+      tableBorders.push(rowBorders);
     }
-    return map;
+
+    return {
+      namedStylesMap: namedStylesMap,
+      tableBorders: tableBorders
+    };
   } catch (e) {
     return null;
   }
+}
+
+function tmLintExtractTable_(table, bodyIndex, tableSeq, borders, namedStylesMap) {
+  var rows = [];
+  var numRows = 0;
+  try { numRows = table.getNumRows(); } catch (e) { numRows = 0; }
+
+  for (var r = 0; r < numRows; r++) {
+    var row;
+    try { row = table.getRow(r); } catch (e) { continue; }
+    var cells = [];
+    var numCells = 0;
+    try { numCells = row.getNumCells(); } catch (e) { numCells = 0; }
+    for (var c = 0; c < numCells; c++) {
+      var cell;
+      try { cell = row.getCell(c); } catch (e) { continue; }
+      cells.push({
+        cell: cell,
+        rowIndex: r,
+        colIndex: c,
+        backgroundColor: tmLintSafeCellBg_(cell),
+        text: cell.getText(),
+        runs: tmLintExtractCellRuns_(cell, namedStylesMap)
+      });
+    }
+    rows.push({ rowIndex: r, cells: cells });
+  }
+
+  return {
+    table: table,
+    bodyIndex: bodyIndex,
+    tableSeq: tableSeq,
+    rows: rows,
+    borders: borders  // null or [row][col].{top,bottom,left,right,backgroundColor}
+  };
+}
+
+function tmLintExtractCellRuns_(cell, namedStylesMap) {
+  var runs = [];
+  var numChildren = 0;
+  try { numChildren = cell.getNumChildren(); } catch (e) { return []; }
+  for (var i = 0; i < numChildren; i++) {
+    var element;
+    try { element = cell.getChild(i); } catch (e) { continue; }
+    var t = element.getType();
+    if (t !== DocumentApp.ElementType.PARAGRAPH &&
+        t !== DocumentApp.ElementType.LIST_ITEM) continue;
+    var p = (t === DocumentApp.ElementType.PARAGRAPH)
+      ? element.asParagraph()
+      : element.asListItem();
+    var hKey = tmLintHeadingToKey_(tmLintSafeGetHeading_(p));
+    var inherited = (namedStylesMap && namedStylesMap[hKey]) ? namedStylesMap[hKey] : null;
+    var cellRuns = tmLintExtractRuns_(p, inherited);
+    runs = runs.concat(cellRuns);
+  }
+  return runs;
+}
+
+function tmLintSafeCellBg_(cell) {
+  try { return cell.getBackgroundColor(); } catch (e) { return null; }
+}
+
+function tmLintParseBorder_(border) {
+  if (!border) return null;
+  return {
+    color: border.color ? tmLintDocsColorToHex_(border.color) : null,
+    width: (border.width && typeof border.width.magnitude === 'number') ? border.width.magnitude : null,
+    dashStyle: border.dashStyle || null
+  };
 }
 
 // Advanced Docs Service の namedStyleType → docwalk 内部キー。
@@ -125,7 +229,7 @@ function tmLintHeadingToKey_(h) {
   return 'NORMAL';
 }
 
-// Advanced Docs Service の Color/OptionalColor → "#rrggbb"。
+// Advanced Docs Service の OptionalColor → "#rrggbb"。
 function tmLintDocsColorToHex_(optionalColor) {
   try {
     if (!optionalColor || !optionalColor.color) return null;
@@ -184,14 +288,12 @@ function tmLintExtractRuns_(paragraph, inheritedStyle) {
       start: s,
       end: e,
       text: content.substring(s, e),
-      // 生の Run 属性（null = 「未設定」）
       fontFamily: fontFamily,
       fontSize: fontSize,
       bold: bold,
       foreground: foreground,
       background: background,
       linkUrl: linkUrl,
-      // namedStyle 継承解決済みの実効値（null は「Run も namedStyle も未設定」を意味する）
       effectiveFontFamily: (fontFamily !== null) ? fontFamily : (inherited.fontFamily || null),
       effectiveFontSize: (fontSize !== null) ? fontSize : (inherited.fontSize || null),
       effectiveBold: (bold !== null) ? bold : ((inherited.bold === true) ? true : false),
