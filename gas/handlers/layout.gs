@@ -4,24 +4,88 @@
  */
 
 this.checkMargins = function(ctx, params, rule) {
-  // TODO: ctx.body.getMarginTop / Bottom / Left / Right を取得（pt 単位）。
-  //  cm 換算: 1cm = 28.3464567pt。params.margin_cm * 28.3464567 と比較し、
-  //  common.tolerance.margin_pt 以内であれば適合。4 方向のうち外れたものだけ Finding 化。
-  return [tmLintTodoFinding_(rule, 'body.getMarginTop/Bottom/Left/Right を pt で取得し 2cm と比較')];
+  var body = ctx.body;
+  var expectedPt = tmLintCmToPt(params.margin_cm);
+  var tolerance = 1; // common.tolerance.margin_pt 相当（ハードコード）
+
+  var sides = [
+    { name: '上', value: tmLintSafeBodyAttr_(body, 'getMarginTop') },
+    { name: '下', value: tmLintSafeBodyAttr_(body, 'getMarginBottom') },
+    { name: '左', value: tmLintSafeBodyAttr_(body, 'getMarginLeft') },
+    { name: '右', value: tmLintSafeBodyAttr_(body, 'getMarginRight') }
+  ];
+
+  var findings = [];
+  for (var i = 0; i < sides.length; i++) {
+    var s = sides[i];
+    if (s.value === null) continue;
+    if (Math.abs(s.value - expectedPt) > tolerance) {
+      findings.push(tmLintMakeFinding_(rule, {
+        location: { type: 'page_setup', index: -1, hint: 'ページ設定 / ' + s.name + '余白' },
+        snippet: '実値: ' + s.value.toFixed(1) + 'pt（期待: ' + expectedPt.toFixed(1) + 'pt = ' + params.margin_cm + 'cm）',
+        message: rule.message + '（' + s.name + '余白）'
+      }));
+    }
+  }
+  return findings;
 };
 
 this.checkLeftAlignment = function(ctx, params, rule) {
-  // TODO: ctx.walked.paragraphs の effectiveAlignment が LEFT 以外を Finding 化。
-  //  exempt_contexts: ["table_cell"] は表セル文脈で除外。
-  return [tmLintTodoFinding_(rule, 'HorizontalAlignment.LEFT 以外を検出（表セル除外）')];
+  if (!ctx.walked || !ctx.walked.paragraphs) return [];
+  var LEFT = DocumentApp.HorizontalAlignment.LEFT;
+  var findings = [];
+  for (var i = 0; i < ctx.walked.paragraphs.length; i++) {
+    var p = ctx.walked.paragraphs[i];
+    if (p.alignment === null) continue; // 未設定は LEFT 既定とみなす
+    if (p.alignment === LEFT) continue;
+    if (!p.text) continue; // 空段落はスキップ
+    findings.push(tmLintMakeFinding_(rule, {
+      location: { type: 'paragraph', index: p.index, hint: '段落 ' + (i + 1) },
+      snippet: tmLintTruncate(p.text, 80),
+      message: rule.message + '（実値: ' + tmLintAlignmentName(p.alignment) + '）'
+    }));
+  }
+  return findings;
 };
 
 this.checkFirstLineIndent = function(ctx, params, rule) {
-  // TODO: Paragraph.getIndentFirstLine() が 0 以外を Finding 化。null は未設定 = 0 とみなす。
-  return [tmLintTodoFinding_(rule, 'getIndentFirstLine() != 0 を検出')];
+  if (!ctx.walked || !ctx.walked.paragraphs) return [];
+  var expected = params.first_line_indent_pt || 0;
+  var findings = [];
+  for (var i = 0; i < ctx.walked.paragraphs.length; i++) {
+    var p = ctx.walked.paragraphs[i];
+    var indent = p.firstLineIndent;
+    if (indent === null) continue; // 未設定 = 0 既定
+    if (Math.abs(indent - expected) <= 0.5) continue;
+    if (!p.text) continue;
+    findings.push(tmLintMakeFinding_(rule, {
+      location: { type: 'paragraph', index: p.index, hint: '段落 ' + (i + 1) },
+      snippet: tmLintTruncate(p.text, 80),
+      message: rule.message + '（実値: ' + indent.toFixed(1) + 'pt）'
+    }));
+  }
+  return findings;
 };
 
 this.checkLineSpacing = function(ctx, params, rule) {
-  // TODO: Paragraph.getLineSpacing() と params.line_spacing を common.tolerance.line_spacing で比較。
-  return [tmLintTodoFinding_(rule, 'getLineSpacing() != 1.15 ±tol を検出')];
+  if (!ctx.walked || !ctx.walked.paragraphs) return [];
+  var expected = params.line_spacing;
+  var tolerance = 0.01;
+  var findings = [];
+  for (var i = 0; i < ctx.walked.paragraphs.length; i++) {
+    var p = ctx.walked.paragraphs[i];
+    if (p.lineSpacing === null) continue;
+    if (Math.abs(p.lineSpacing - expected) <= tolerance) continue;
+    if (!p.text) continue;
+    findings.push(tmLintMakeFinding_(rule, {
+      location: { type: 'paragraph', index: p.index, hint: '段落 ' + (i + 1) },
+      snippet: tmLintTruncate(p.text, 80),
+      message: rule.message + '（実値: ' + p.lineSpacing.toFixed(3) + '）'
+    }));
+  }
+  return findings;
 };
+
+function tmLintSafeBodyAttr_(body, methodName) {
+  try { return body[methodName](); } catch (e) { return null; }
+}

@@ -32,15 +32,15 @@ this.tmLintRenderReport = function(doc, findings, meta) {
     + ' / WARN=' + grouped.WARN.length
     + ' / INFO=' + grouped.INFO.length);
 
-  // 雛形時の注記: 全 Finding が implementationNote を持つ場合は「全ハンドラ未実装」状態と判断。
+  // 未実装ハンドラの件数を集計し、表示。
   var todoCount = 0;
   for (var t = 0; t < findings.length; t++) {
     if (findings[t].implementationNote) todoCount++;
   }
-  if (findings.length > 0 && todoCount === findings.length) {
+  if (todoCount > 0) {
     var notice = body.appendParagraph(
-      '【現在は雛形段階】全ハンドラが未実装です。各 Finding は「該当ルールが配管されている」確認用で、'
-      + '位置・抜粋・実値は本実装後に表示されます。判定意図はルール ID 横のガイドライン参照を参照してください。'
+      '【未実装ハンドラ ' + todoCount + ' 件】対応する Finding は INFO（雛形）として表示されます。'
+      + '実装済みハンドラで違反が見つかった場合は ERROR / WARN として表示されます。'
     );
     notice.editAsText().setBold(true);
   }

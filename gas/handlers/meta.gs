@@ -1,21 +1,44 @@
 /**
  * handlers/meta.gs — フッターページ番号、作成日・更新日記載。
- * 担当ルール: A-META-001 / A-META-002
+ * 担当ルール: A-META-001（雛形）/ A-META-002（本実装）
  */
 
 this.checkFooterPageNumber = function(ctx, params, rule) {
-  // TODO:
-  //  - ctx.footer が null なら ERROR Finding（フッター自体なし）
-  //  - フッター内の段落 alignment が RIGHT か検査
-  //  - フッターテキストが params.pattern (正規表現) にマッチするか
-  //  - require_dynamic: true の場合、Advanced Docs Service で
-  //    contentRefs / autoTextStyle 等の動的ページ番号要素を確認
-  return [tmLintTodoFinding_(rule, 'フッター右下に <currentPage>/<totalPages> 形式のページ番号があるか検査')];
+  // フッター内の動的ページ番号要素は Advanced Docs Service 経由でないと確実に判別できない。
+  // 次フェーズで本実装。
+  return [tmLintTodoFinding_(rule, 'フッター右下に <currentPage>/<totalPages> 形式のページ番号があるか検査（Advanced Docs Service 必要）')];
 };
 
 this.checkCreatedUpdatedDate = function(ctx, params, rule) {
-  // TODO: ctx.walked.paragraphs の末尾 scope_value 段落のテキストを連結し、
-  //  params.patterns の各正規表現でいずれかにマッチするかを判定。
-  //  「作成日」「更新日」両方の検出を要求するか片方で可とするかは仕様要確認 → 雛形では片方で可とする。
-  return [tmLintTodoFinding_(rule, '末尾 ' + (params.scope_value || 10) + ' 段落で作成日/更新日記載を検索')];
+  if (!ctx.walked || !ctx.walked.paragraphs) return [];
+  var paragraphs = ctx.walked.paragraphs;
+  if (paragraphs.length === 0) return [];
+
+  var n = params.scope_value || 10;
+  var start = Math.max(0, paragraphs.length - n);
+
+  var combined = '';
+  for (var i = start; i < paragraphs.length; i++) {
+    combined += paragraphs[i].text + '\n';
+  }
+
+  var patterns = params.patterns || [];
+  for (var p = 0; p < patterns.length; p++) {
+    var re;
+    try {
+      re = new RegExp(patterns[p]);
+    } catch (e) {
+      continue;
+    }
+    if (re.test(combined)) {
+      return []; // どれか1つマッチで OK
+    }
+  }
+
+  var preview = combined.replace(/\n+/g, ' / ').trim();
+  return [tmLintMakeFinding_(rule, {
+    location: { type: 'document', index: -1, hint: '本文末尾 ' + n + ' 段落' },
+    snippet: tmLintTruncate(preview, 80),
+    message: rule.message
+  })];
 };

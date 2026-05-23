@@ -1,25 +1,43 @@
 /**
  * handlers/font.gs — フォントファミリ・サイズ階層関連。
- * 担当ルール: A-FONT-001 / A-FONT-002〜006 (checkHeadingStyle) / A-FONT-007
+ * 担当ルール: A-FONT-001（本実装）/ A-FONT-002〜006 (checkHeadingStyle 雛形) / A-FONT-007（雛形）
+ *
+ * 雛形のままのものは docwalk の namedStyles 継承解決完了後に本実装する予定。
+ * 現在の docwalk は editAsText() ベースで Run 属性が null = 「未設定（継承）」として返るため、
+ * 「見出しスタイル違反」の判定にはまだ早い（false positive が出やすい）。
  */
 
 this.checkFontFamily = function(ctx, params, rule) {
-  // TODO: 全 Run の effectiveFontFamily が params.allowed_fonts に含まれない場合 Finding。
-  //  バリアント表記（"Noto Sans Japanese" 等）の正規化を要検討。
-  return [tmLintTodoFinding_(rule, 'allowed_fonts 以外のフォントを Run 単位で検出')];
+  if (!ctx.walked || !ctx.walked.paragraphs) return [];
+  var allowed = params.allowed_fonts || [];
+  var findings = [];
+
+  for (var i = 0; i < ctx.walked.paragraphs.length; i++) {
+    var p = ctx.walked.paragraphs[i];
+    if (!p.runs || p.runs.length === 0) continue;
+
+    for (var j = 0; j < p.runs.length; j++) {
+      var run = p.runs[j];
+      if (run.fontFamily === null) continue; // 未設定（namedStyle 継承）は許容
+      if (allowed.indexOf(run.fontFamily) !== -1) continue;
+      if (!run.text || !run.text.trim()) continue;
+
+      findings.push(tmLintMakeFinding_(rule, {
+        location: { type: 'run', index: p.index, hint: '段落 ' + (i + 1) + ' / Run ' + (j + 1) },
+        snippet: tmLintTruncate(run.text, 80),
+        message: rule.message + '（実値: ' + run.fontFamily + '）'
+      }));
+    }
+  }
+  return findings;
 };
 
 this.checkHeadingStyle = function(ctx, params, rule) {
-  // TODO: ctx.walked.paragraphs を走査し、headingType === params.heading_type の段落について
-  //   - effectiveFontSize === params.size_pt
-  //   - effectiveBold === params.bold
-  //   を検査。NORMAL かつ allow_bold_for_emphasis: true の場合は Bold は許容（強調比率は別ルール）。
-  return [tmLintTodoFinding_(rule, params.heading_type + ' に size_pt=' + params.size_pt + '/bold=' + params.bold + ' を期待')];
+  // docwalk の namedStyles 継承解決完了後に本実装。
+  return [tmLintTodoFinding_(rule, params.heading_type + ' に size_pt=' + params.size_pt + '/bold=' + params.bold + ' を期待（namedStyles 継承解決後に本実装）')];
 };
 
 this.checkMinFontSize = function(ctx, params, rule) {
-  // TODO: 全 Run の effectiveFontSize < params.min_size_pt を検出。
-  //  exempt_contexts: ["quote_block"] は除外（GAS には引用ブロック型がないため、
-  //  インデント or namedStyle.name === "Quote" 等の推定で対応）。
-  return [tmLintTodoFinding_(rule, params.min_size_pt + 'pt 未満を検出（引用例外）')];
+  // 同上。getFontSize(offset) が null（継承）を返した場合の解決が必要。
+  return [tmLintTodoFinding_(rule, params.min_size_pt + 'pt 未満を検出（引用例外、namedStyles 継承解決後に本実装）')];
 };
