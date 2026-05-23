@@ -18,6 +18,7 @@
 this.tmLintExecuteChecks = function(doc, rules) {
   var findings = [];
   var ctx = tmLintBuildContext_(doc);
+  ctx.rules = rules;  // handler から ctx.rules.common.wcag 等を参照できるようにする
 
   for (var i = 0; i < rules.rules.length; i++) {
     var rule = rules.rules[i];
