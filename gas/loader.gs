@@ -101,6 +101,21 @@ function tmLintFetchText_(url) {
 }
 
 /**
+ * Advanced Docs Service のスコープを Apps Script 静的解析に認識させるためのダミー関数。
+ * 実行されない。リモート (docwalk.gs) で `Docs.Documents.get(...)` を呼ぶが、
+ * リモート eval ロードのコードは静的解析対象外でスコープが要求されないため、本ファイルに
+ * 静的呼び出しを残しておく必要がある（サイドバーで踏んだ罠と同じ）。
+ *
+ * 利用条件: Apps Script エディタで「サービス → Google Docs API」を有効化していること。
+ * 未有効化の場合は docwalk.gs 側で typeof チェックして無効化扱いに落とす。
+ */
+function _tmLintAdvancedDocsScopeHint_() {
+  if (false) {
+    Docs.Documents.get('dummy-doc-id');
+  }
+}
+
+/**
  * サイドバーを表示する。
  *
  * 静的に loader.gs に置く理由:
