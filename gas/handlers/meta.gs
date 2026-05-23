@@ -1,12 +1,111 @@
 /**
  * handlers/meta.gs — フッターページ番号、作成日・更新日記載。
- * 担当ルール: A-META-001（雛形）/ A-META-002（本実装）
+ * 担当ルール: A-META-001（本実装）/ A-META-002（本実装済み）
+ *
+ * A-META-001 はフッター内の動的ページ番号（autoText の PAGE_NUMBER / PAGE_COUNT）を
+ * Advanced Docs Service で検査するため、namedStylesAvailable と同じ前提を要する。
  */
 
 this.checkFooterPageNumber = function(ctx, params, rule) {
-  // フッター内の動的ページ番号要素は Advanced Docs Service 経由でないと確実に判別できない。
-  // 次フェーズで本実装。
-  return [tmLintTodoFinding_(rule, 'フッター右下に <currentPage>/<totalPages> 形式のページ番号があるか検査（Advanced Docs Service 必要）')];
+  if (typeof Docs === 'undefined' || !Docs.Documents) {
+    return [tmLintTodoFinding_(rule,
+      'Advanced Docs Service が無効。Apps Script エディタで「サービス → Google Docs API」を追加してください')];
+  }
+
+  var requireDynamic = params.require_dynamic === true;
+  var expectedAlignment = params.alignment || 'RIGHT'; // 「RIGHT」 ↔ Docs API "END"
+  var expectedAlignmentDocs = (expectedAlignment === 'RIGHT') ? 'END'
+                            : (expectedAlignment === 'LEFT') ? 'START'
+                            : (expectedAlignment === 'CENTER') ? 'CENTER'
+                            : 'END';
+
+  try {
+    var docResource = Docs.Documents.get(ctx.doc.getId());
+    var footers = docResource.footers || {};
+    var footerIds = Object.keys(footers);
+
+    if (footerIds.length === 0) {
+      return [tmLintMakeFinding_(rule, {
+        location: { type: 'footer', index: -1, hint: 'フッター未設定' },
+        snippet: '',
+        message: rule.message + '（フッターが設定されていません）'
+      })];
+    }
+
+    // 各フッターを走査。条件を満たす段落が 1 つでもあれば OK。
+    var hasPageNumber = false;
+    var hasPageCount = false;
+    var hasAlignedPageNumPair = false;
+    var footerTextSample = '';
+
+    for (var f = 0; f < footerIds.length; f++) {
+      var footer = footers[footerIds[f]];
+      var content = footer.content || [];
+      for (var c = 0; c < content.length; c++) {
+        var elt = content[c];
+        if (!elt.paragraph) continue;
+        var paragraph = elt.paragraph;
+        var paraStyle = paragraph.paragraphStyle || {};
+        var alignment = paraStyle.alignment || 'START';
+        var elements = paragraph.elements || [];
+
+        var pnInThisPara = false;
+        var pcInThisPara = false;
+        var paraText = '';
+        for (var e = 0; e < elements.length; e++) {
+          var el = elements[e];
+          if (el.textRun && el.textRun.content) {
+            paraText += el.textRun.content;
+          }
+          if (el.autoText) {
+            if (el.autoText.type === 'PAGE_NUMBER') {
+              pnInThisPara = true;
+              hasPageNumber = true;
+              paraText += '<PAGE_NUMBER>';
+            }
+            if (el.autoText.type === 'PAGE_COUNT') {
+              pcInThisPara = true;
+              hasPageCount = true;
+              paraText += '<PAGE_COUNT>';
+            }
+          }
+        }
+        if (!footerTextSample && paraText.trim()) {
+          footerTextSample = paraText.trim();
+        }
+        if (pnInThisPara && pcInThisPara && alignment === expectedAlignmentDocs) {
+          hasAlignedPageNumPair = true;
+        }
+      }
+    }
+
+    if (hasAlignedPageNumPair) return [];
+
+    var issues = [];
+    if (requireDynamic && (!hasPageNumber || !hasPageCount)) {
+      issues.push('動的ページ番号（PAGE_NUMBER / PAGE_COUNT）が揃っていません'
+                  + '（PAGE_NUMBER=' + hasPageNumber + ', PAGE_COUNT=' + hasPageCount + '）');
+    }
+    if (!hasAlignedPageNumPair && hasPageNumber && hasPageCount) {
+      issues.push('ページ番号段落の配置が ' + expectedAlignment + ' ではありません');
+    }
+    if (issues.length === 0) {
+      issues.push('「現在ページ / 総ページ数」形式のページ番号が右揃えで設定されていません');
+    }
+
+    return [tmLintMakeFinding_(rule, {
+      location: { type: 'footer', index: -1, hint: 'フッター' },
+      snippet: tmLintTruncate(footerTextSample, 80),
+      message: rule.message + '（' + issues.join('、') + '）'
+    })];
+  } catch (e) {
+    return [tmLintMakeFinding_(rule, {
+      severity: 'INFO',
+      location: { type: 'footer', index: -1, hint: 'フッター取得エラー' },
+      snippet: '',
+      message: 'フッター情報の取得に失敗: ' + e.message
+    })];
+  }
 };
 
 this.checkCreatedUpdatedDate = function(ctx, params, rule) {
@@ -31,7 +130,7 @@ this.checkCreatedUpdatedDate = function(ctx, params, rule) {
       continue;
     }
     if (re.test(combined)) {
-      return []; // どれか1つマッチで OK
+      return [];
     }
   }
 
