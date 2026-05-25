@@ -1,0 +1,8 @@
+# Claude Code の個人設定は管理しない。skills/ ディレクトリは管理する。
+.claude/settings.json
+.claude/settings.local.json
+
+# Editor / OS
+.DS_Store
+Thumbs.db
+*.swp

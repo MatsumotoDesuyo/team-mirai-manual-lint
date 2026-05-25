@@ -36,11 +36,33 @@
 
 外部 URL からコードを取得して実行する点に懸念がある場合は、`gas/loader.gs` の `TM_LINT_CONFIG.ref` を特定タグ／コミット SHA に固定してください。
 
-## 導入手順（Layer B / LLM CLI）
+## 導入手順（Layer B / LLM 意味判定）
 
 Layer B は **LLM 担当者が手元で実行する** 別経路です。各サポーターのインストールは不要で、校正チームに渡す前段で 1 回実行する設計です（DESIGN.md §4.B）。
 
-セットアップと使い方は [cli/README.md](cli/README.md) を参照してください。本実装済みは B-TEXT-014（受動態回避）の 1 ルール。残り 22 ルールは順次実装中。
+担当者の運用環境に応じて 2 経路を提供しています:
+
+### 推奨: Claude Code skill 経由
+
+担当者が Claude Code（Pro/Max 等）を契約しているなら、こちらが第 1 選択肢。**Anthropic API への個別課金が発生しません**。
+
+1. このリポジトリを Claude Code で開く
+2. Google Drive MCP を有効化（接続済みなら不要）
+3. `/layer-b-lint <Doc URL>` を実行
+4. 結果が対話的に提示される。JSON が欲しい場合は「JSON で出して」と追記
+
+skill 定義: [.claude/skills/layer-b-lint/SKILL.md](.claude/skills/layer-b-lint/SKILL.md)
+プロンプト本体: [.claude/skills/layer-b-lint/prompts/](.claude/skills/layer-b-lint/prompts/)（CLI と共有）
+
+### 補助: CLI 経由
+
+CI / GitHub Actions 連携が必要、または非 Claude Code 環境の担当者が実行する場合に使う選択肢。Anthropic API キーを直接消費します。
+
+セットアップと使い方は [cli/README.md](cli/README.md) を参照。
+
+### ルール実装状況
+
+本実装済み: B-TEXT-014（受動態回避）の 1 ルール。残り 22 ルールは順次実装中。skill 側のプロンプト追加で CLI 側も自動的に対応します（プロンプト共有設計）。
 
 ## ファイル構成
 

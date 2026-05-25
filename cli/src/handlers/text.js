@@ -1,45 +1,55 @@
 // Layer B / TEXT 系ハンドラ。
 // 本実装: B-TEXT-014（受動態回避）。
 // 他のルールは未実装（handlers/index.js で未登録）。
+//
+// プロンプト本文は .claude/skills/layer-b-lint/prompts/ の正本を読み込んで使う。
+// skill 経由 (Claude Code) と CLI 経由 (このファイル) で同じプロンプトを共有することで、
+// 運用経路によって判定がブレないようにする。
 
 import { callLLM, parseLLMJson } from '../llmClient.js';
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const PROMPTS_DIR = path.resolve(__dirname, '..', '..', '..', '.claude', 'skills', 'layer-b-lint', 'prompts');
+
+async function loadPrompt(filename) {
+  const p = path.join(PROMPTS_DIR, filename);
+  try {
+    return await fs.readFile(p, 'utf-8');
+  } catch (e) {
+    throw new Error(
+      `プロンプトファイルが読めません: ${p}\n` +
+      'skills/layer-b-lint/prompts/ 配下の正本を確認してください。'
+    );
+  }
+}
 
 /**
  * B-TEXT-014 受動態回避。
  * Doc 全文（system でキャッシュ済み）に対して、受動態が使われている箇所を LLM に列挙させる。
- * 自然な受動表現（法令的記述、被害者主語が重要な文脈等）は除外するよう指示。
+ * 判定基準は .claude/skills/layer-b-lint/prompts/passive-voice.md と共有。
  */
 export async function checkPassiveVoice({ systemBlocks, rule, params }) {
-  const maxExamples = params.max_examples || 10;
+  const maxExamples = params.max_examples || 15;
+  const promptBody = await loadPrompt('passive-voice.md');
 
-  const userPrompt = `# ルール: ${rule.id} ${rule.guideline_ref}
+  const userPrompt = `# ${rule.id} 判定
 
-対象マニュアル本文（system 側に展開済み）から、受動態（〜される / 〜られる）が使われている箇所を抽出してください。
+以下のルール定義に従って、system 側に展開されている対象マニュアル本文を解析してください。
 
-## 除外基準
-以下のような自然な受動表現は対象外（誤検出を避けるため除外）:
-- 法令的記述（例: 「禁止されています」「許可されています」）
-- 被害・受身の主語が重要で能動化すると意味が変わる場合（例: 「通行人に声をかけられた」のように読み手の受け身が主題）
-- 慣用句・定型句（例: 「議員と呼ばれる」「と言われている」）
+---
 
-## 出力形式
-\`\`\`json
-{
-  "findings": [
-    {
-      "paragraphIndex": 5,
-      "snippet": "受動態を含む 30〜80 字程度の引用（段落本文から原文ママで）",
-      "passive_phrase": "受動態の該当語句（例: 撤去されます）",
-      "suggestion": "能動態への書き換え案（短い 1 行）",
-      "reason": "なぜ能動化すべきかの短い理由"
-    }
-  ]
-}
-\`\`\`
+${promptBody}
 
-最大 ${maxExamples} 件まで。重要度の高い順（自然さで除外しきれず、改善効果が大きいもの順）に絞ってください。
-受動態が見つからない場合は \`{"findings": []}\` を返してください。
-出力は JSON のみ。前後に説明文や Markdown 装飾を付けないでください。`;
+---
+
+# CLI 経由の追加指示
+- このリクエストは CLI 経由です。**JSON のみ**で返してください。説明文・コードブロックは付けないでください。
+- 最大 ${maxExamples} 件まで。
+- 該当なしの場合は \`{"findings": []}\` を返してください。
+`;
 
   const res = await callLLM(systemBlocks, userPrompt, { maxTokens: 4000, temperature: 0.0 });
 

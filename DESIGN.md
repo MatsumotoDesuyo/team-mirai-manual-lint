@@ -83,10 +83,29 @@ Google Docs 上で執筆されるチームみらい街頭活動マニュアル�
   - 外部コード取得（`UrlFetchApp`）の透明性は導入ガイドで明示し、公開リポジトリのコード監査可能性で正当化する
   - スコープ自体は非機微（Doc 本体への読み書きは bound script として owner 権限で行う）
 
-### Layer B の配布：公開リポジトリの CLI / GitHub Action
+### Layer B の配布：Claude Code skill（主）/ CLI（補助）
 
-- 公開リポジトリ内で完結する CLI。LLM 担当者が手元で実行、または Action で起動。
-- 各サポーター個人の有料 LLM 契約に依存させない。担当者の API キーで集中運用。
+担当者の運用環境に応じて 2 経路を提供する。**判定プロンプトは [.claude/skills/layer-b-lint/prompts/](.claude/skills/layer-b-lint/prompts/) に正本を一元化** し、両経路から参照することで判定のブレを防ぐ。
+
+#### 主: Claude Code skill (`/layer-b-lint`)
+
+- 担当者が Claude Code (Pro/Max 等) を契約していれば、Anthropic API への **個別課金が発生しない**
+- Google Drive MCP 経由で Doc を取得し、対話的に判定結果を提示。「JSON で」と追記すれば構造化出力
+- セットアップは Claude Code + Drive MCP のみ。`npm install` も OAuth credentials.json も不要
+- 「個人サポーター名義の非公式コミュニティツール」の主旨と、コスト負担の現実を両立する第 1 選択肢
+
+#### 補助: CLI (`cli/`)
+
+- 公開リポジトリ内で完結する Node.js CLI（Anthropic SDK）
+- 用途: **CI / GitHub Actions 自動化、または Claude Code 非契約者が API キーを持って実行する場合**
+- 担当者の API キーで集中運用（各サポーター個人契約は不要）
+- skill と同じプロンプトを `.claude/skills/layer-b-lint/prompts/` から読み込む
+
+#### 共通原則
+
+- 判定基準は GUIDELINES.md / rules.json が正本。skill / CLI 側で独自拡張しない
+- 法令・著作権・肖像権の判定は禁止（Layer C / 人間専管、§6 参照）
+- Doc 本文の改変・コメント挿入は禁止（read のみ、§ 自動化しない領域に準じる）
 
 ### ルール・用語集の管理（正本一元化）
 

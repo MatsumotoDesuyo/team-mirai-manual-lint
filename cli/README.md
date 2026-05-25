@@ -1,10 +1,16 @@
 # team-mirai-manual-lint CLI (Layer B)
 
-[DESIGN.md](../DESIGN.md) §3 Layer B（LLM 意味判定）と §4.B（CLI 配布）を実装。
+[DESIGN.md](../DESIGN.md) §3 Layer B（LLM 意味判定）の **CI / 非 Claude Code 環境向け** 実装。
 
-Anthropic Claude API でガイドラインの「わかりやすさ」「トーン」「表記ゆれ」を判定し、Layer A（GAS）と整合する Finding 形式で出力する。
+> **通常は [`/layer-b-lint` skill](../.claude/skills/layer-b-lint/SKILL.md) を推奨します。** Claude Code 経由なら Anthropic API への個別課金が発生しないため、コスト面で有利です。
+> 本 CLI は次のいずれかに該当する場合に使用してください:
+> - GitHub Actions など **CI で自動実行** したい
+> - 担当者が **Claude Code を契約していない** が Anthropic API キーは持っている
+> - **再現性が厳格に必要**（同一プロンプトで同一モデル指定）
 
-> **これは LLM 担当者（少数の指定担当）が実行するツールです**。各サポーターが個別に API キーを持つ必要はありません。校正チームに渡す前段で 1 回実行する想定（[DESIGN.md §3 Layer B](../DESIGN.md)）。
+判定プロンプトは skill と共通の [.claude/skills/layer-b-lint/prompts/](../.claude/skills/layer-b-lint/prompts/) を参照します。運用経路によって判定がブレないようにする設計です。
+
+各サポーターが個別に CLI セットアップする必要はありません。校正チームに渡す前段で 1 回実行する想定（[DESIGN.md §3 Layer B](../DESIGN.md)）。
 
 ## セットアップ
 
