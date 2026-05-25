@@ -266,16 +266,94 @@
       "message": "漢字が連続して 6 字を超えています。"
     },
     {
+      "id": "B-TEXT-006",
+      "guideline_ref": "§3 文章の基本 / 1文1トピック",
+      "severity": "WARN",
+      "layer": "B",
+      "handler": "llm.checkSentenceTopic",
+      "params": { "max_examples": 10 },
+      "message": "1 文に複数のトピックが含まれています。1 文 1 トピックに分割してください。"
+    },
+    {
+      "id": "B-TEXT-007",
+      "guideline_ref": "§3 文章の基本 / 1文 50字推奨・100字最大",
+      "severity": "WARN",
+      "layer": "B",
+      "handler": "llm.checkSentenceLength",
+      "params": { "max_examples": 15, "recommend_chars": 50, "max_chars": 100 },
+      "message": "1 文が長すぎます。50 字以内（最大 100 字）に分割してください。"
+    },
+    {
+      "id": "B-TEXT-009",
+      "guideline_ref": "§3 文法と係り受け / 格助詞省略しない",
+      "severity": "WARN",
+      "layer": "B",
+      "handler": "llm.checkMissingParticle",
+      "params": { "max_examples": 10 },
+      "message": "格助詞「は・が・を・に」等の省略で意味が取りづらくなっています。"
+    },
+    {
+      "id": "B-TEXT-010",
+      "guideline_ref": "§3 文法と係り受け / ら抜き言葉禁止",
+      "severity": "WARN",
+      "layer": "B",
+      "handler": "llm.checkRanukiKotoba",
+      "params": { "max_examples": 10 },
+      "message": "ら抜き言葉が使われています。正しい可能形に書き直してください。"
+    },
+    {
+      "id": "B-TEXT-011",
+      "guideline_ref": "§3 文法と係り受け / 助詞「が」の連続使用回避",
+      "severity": "WARN",
+      "layer": "B",
+      "handler": "llm.checkGaConsecutive",
+      "params": { "max_examples": 10 },
+      "message": "1 文中で助詞「が」が連続しており読みにくくなっています。"
+    },
+    {
+      "id": "B-TEXT-012",
+      "guideline_ref": "§3 文法と係り受け / 修飾被修飾の近接",
+      "severity": "WARN",
+      "layer": "B",
+      "handler": "llm.checkModifierProximity",
+      "params": { "max_examples": 10 },
+      "message": "修飾語と被修飾語が離れていて、係り受けが曖昧です。"
+    },
+    {
+      "id": "B-TEXT-013",
+      "guideline_ref": "§3 表現の簡潔化 / 冗長表現",
+      "severity": "WARN",
+      "layer": "B",
+      "handler": "llm.checkVerboseExpression",
+      "params": { "max_examples": 15 },
+      "message": "冗長表現が含まれています。簡潔な形に書き直してください。"
+    },
+    {
       "id": "B-TEXT-014",
       "guideline_ref": "§3 表現の簡潔化 / 能動態使用・受動態回避",
       "severity": "WARN",
       "layer": "B",
       "handler": "llm.checkPassiveVoice",
-      "params": {
-        "prompt_template": "passive_voice",
-        "max_examples": 15
-      },
+      "params": { "max_examples": 15 },
       "message": "受動態が使われています。能動態（誰が何をするか）で書き直してください。"
+    },
+    {
+      "id": "B-TEXT-015",
+      "guideline_ref": "§3 表現の簡潔化 / 二重否定禁止",
+      "severity": "WARN",
+      "layer": "B",
+      "handler": "llm.checkDoubleNegation",
+      "params": { "max_examples": 10 },
+      "message": "二重否定が使われています。直接肯定の表現に書き直してください。"
+    },
+    {
+      "id": "B-TEXT-016",
+      "guideline_ref": "§3 表現の簡潔化 / 曖昧副詞回避",
+      "severity": "WARN",
+      "layer": "B",
+      "handler": "llm.checkAmbiguousAdverb",
+      "params": { "max_examples": 15 },
+      "message": "曖昧な副詞（適宜・適切に・丁寧に 等）が使われています。具体的・数値的な表現に書き直してください。"
     }
   ]
 }

@@ -41,9 +41,18 @@ URL からの ID 抽出:
 
 | ルール ID | プロンプトファイル | 状態 |
 |---|---|---|
+| B-TEXT-006 | [prompts/sentence-one-topic.md](./prompts/sentence-one-topic.md) | ✅ 本実装 |
+| B-TEXT-007 | [prompts/sentence-length.md](./prompts/sentence-length.md) | ✅ 本実装 |
+| B-TEXT-009 | [prompts/missing-particle.md](./prompts/missing-particle.md) | ✅ 本実装 |
+| B-TEXT-010 | [prompts/ranuki.md](./prompts/ranuki.md) | ✅ 本実装 |
+| B-TEXT-011 | [prompts/ga-consecutive.md](./prompts/ga-consecutive.md) | ✅ 本実装 |
+| B-TEXT-012 | [prompts/modifier-proximity.md](./prompts/modifier-proximity.md) | ✅ 本実装 |
+| B-TEXT-013 | [prompts/verbose-expression.md](./prompts/verbose-expression.md) | ✅ 本実装 |
 | B-TEXT-014 | [prompts/passive-voice.md](./prompts/passive-voice.md) | ✅ 本実装 |
+| B-TEXT-015 | [prompts/double-negation.md](./prompts/double-negation.md) | ✅ 本実装 |
+| B-TEXT-016 | [prompts/ambiguous-adverb.md](./prompts/ambiguous-adverb.md) | ✅ 本実装 |
 
-上記以外の `rules.json` Layer B 行（B-TEXT-001〜013/015〜018, B-TONE-001〜003, B-EMPHASIS-001, B-STRUCT-001）は **「未対応」と明示する**。誤った判定を生成しない。
+上記以外の `rules.json` Layer B 行（B-TEXT-001〜005/008/017/018, B-TONE-001〜003, B-EMPHASIS-001, B-STRUCT-001）は **「未対応」と明示する**。誤った判定を生成しない。
 
 各ルールについて、対応するプロンプトファイルの「判定手順」「除外基準」「出力形式」に従って Doc を解析する。
 

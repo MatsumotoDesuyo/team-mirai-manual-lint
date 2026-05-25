@@ -34,8 +34,14 @@ function formatMarkdown(findings, meta) {
       lines.push(`- 位置: ${f.location?.hint || '-'}`);
       lines.push(`- 内容: ${f.message}`);
       if (f.snippet) lines.push(`- 抜粋: 「${f.snippet}」`);
-      if (f.passivePhrase) lines.push(`- 受動表現: 「${f.passivePhrase}」`);
       if (f.suggestion) lines.push(`- 改善案: ${f.suggestion}`);
+      // ルール固有フィールド（passive_phrase, original/concise, ambiguous_word 等）を一括展開
+      if (f.extra && typeof f.extra === 'object') {
+        for (const [k, v] of Object.entries(f.extra)) {
+          const formatted = Array.isArray(v) ? v.join(' / ') : (typeof v === 'object' ? JSON.stringify(v) : String(v));
+          lines.push(`- ${k}: ${formatted}`);
+        }
+      }
       if (f.implementationNote) lines.push(`- 補足: ${f.implementationNote}`);
       lines.push('');
     });
