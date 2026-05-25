@@ -62,7 +62,21 @@ URL からの ID 抽出:
 | B-EMPHASIS-001 | [prompts/emphasis-as-text.md](./prompts/emphasis-as-text.md) | ✅ 本実装 |
 | B-STRUCT-001 | [prompts/chapter-structure.md](./prompts/chapter-structure.md) | ✅ 本実装 |
 
-上記以外の `rules.json` Layer B 行（**B-TEXT-001 です・ます調統一 / B-TEXT-002 英数字半角統一 / B-TEXT-003 用語統一**）は **校正用ルール・用語集スプレッドシート連携待ちのため未対応**。誤った判定を生成しない。
+| B-TEXT-001 | [prompts/desu-masu-style.md](./prompts/desu-masu-style.md) | ✅ 本実装（用語集連携） |
+| B-TEXT-002 | [prompts/halfwidth-alphanum.md](./prompts/halfwidth-alphanum.md) | ✅ 本実装（用語集連携） |
+| B-TEXT-003 | [prompts/term-consistency.md](./prompts/term-consistency.md) | ✅ 本実装（用語集連携） |
+
+これで Layer B 全 23 ルールが本実装済みになった。
+
+## 用語集スプレッドシート連携（B-TEXT-001 / 002 / 003 専用）
+
+これら 3 ルールは判定基準が校正用ルール・用語集スプレッドシート（ID: `1YhKZ48Cyel-_zq8Jcj580w0wViUE7KMX1u-651IEdp0`）に集約されている。本 skill では以下の手順で取得する:
+
+1. Google Drive MCP の `read_file_content` または `download_file_content` で上記 ID のシートを取得
+2. シート構造（タブ名・列名）を読み取り、判定に使用する
+3. 取得に失敗した場合、該当 3 ルールは「用語集未取得のため判定見送り」として INFO 出力（誤判定を生成しない）
+
+CLI 版は `cli/src/glossaryFetcher.js` が Google Sheets API で同じシートを取得し、判定材料として LLM に渡す。
 
 各ルールについて、対応するプロンプトファイルの「判定手順」「除外基準」「出力形式」に従って Doc を解析する。
 

@@ -26,10 +26,14 @@ import {
   // B-EMPHASIS / B-STRUCT
   checkEmphasisAsText,
   checkChapterStructure,
+  // 用語集連携系
+  checkDesuMasuStyle,
+  checkHalfwidthAlphanum,
+  checkTermConsistency,
 } from './text.js';
 
 export const handlers = {
-  // B-TEXT
+  // B-TEXT 文章スタイル・文法
   checkSentenceTopic,
   checkSentenceLength,
   checkMissingParticle,
@@ -40,6 +44,7 @@ export const handlers = {
   checkPassiveVoice,
   checkDoubleNegation,
   checkAmbiguousAdverb,
+  // B-TEXT 読みやすさ・構成
   checkTypo,
   checkReadability,
   checkPreferBullets,
@@ -52,9 +57,8 @@ export const handlers = {
   // B-EMPHASIS / B-STRUCT
   checkEmphasisAsText,
   checkChapterStructure,
-
-  // 残り未実装（用語集スプレッドシート連携が必要）:
-  //   - B-TEXT-001  です・ます調統一
-  //   - B-TEXT-002  英数字半角統一
-  //   - B-TEXT-003  用語統一
+  // 用語集連携系
+  checkDesuMasuStyle,
+  checkHalfwidthAlphanum,
+  checkTermConsistency,
 };

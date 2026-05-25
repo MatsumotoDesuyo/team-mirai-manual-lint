@@ -38,11 +38,37 @@ async function loadPrompt(filename) {
 /**
  * TEXT 系ハンドラのジェネレータ。プロンプトファイル名を渡すと、共通の判定パイプラインで
  * 動くハンドラ関数を返す。
+ *
+ * options.requiresGlossary === true の場合、runner から渡される glossaryMarkdown を
+ * user prompt に追加する。用語集が取得できなかった場合（glossaryMarkdown が空）は
+ * 判定を見送り（INFO Finding 1 件）。
  */
-function makeTextHandler(promptFilename) {
-  return async function ({ systemBlocks, rule, params }) {
+function makeTextHandler(promptFilename, options = {}) {
+  return async function ({ systemBlocks, rule, params, glossaryMarkdown }) {
     const maxExamples = params?.max_examples || 15;
     const promptBody = await loadPrompt(promptFilename);
+
+    if (options.requiresGlossary && !glossaryMarkdown) {
+      return {
+        findings: [{
+          ruleId: rule.id,
+          severity: 'INFO',
+          guidelineRef: rule.guideline_ref || '',
+          location: { type: 'document', index: -1, hint: '用語集未取得' },
+          startOffset: null,
+          endOffset: null,
+          snippet: '',
+          message: '用語集スプレッドシートを取得できなかったため判定を見送り。CLI: spreadsheets スコープが認証されているか確認してください。',
+          implementationNote: '',
+          autoFixable: false,
+        }],
+        usage: null,
+      };
+    }
+
+    const glossarySection = (options.requiresGlossary && glossaryMarkdown)
+      ? `\n\n---\n\n${glossaryMarkdown}\n`
+      : '';
 
     const userPrompt = `# ${rule.id} 判定
 
@@ -51,7 +77,7 @@ function makeTextHandler(promptFilename) {
 ---
 
 ${promptBody}
-
+${glossarySection}
 ---
 
 # CLI 経由の追加指示
@@ -127,3 +153,7 @@ export const checkReaderPerspective = makeTextHandler('reader-perspective.md');
 // B-EMPHASIS / B-STRUCT
 export const checkEmphasisAsText = makeTextHandler('emphasis-as-text.md');
 export const checkChapterStructure = makeTextHandler('chapter-structure.md');
+// 用語集連携が必要なハンドラ
+export const checkDesuMasuStyle = makeTextHandler('desu-masu-style.md', { requiresGlossary: true });
+export const checkHalfwidthAlphanum = makeTextHandler('halfwidth-alphanum.md', { requiresGlossary: true });
+export const checkTermConsistency = makeTextHandler('term-consistency.md', { requiresGlossary: true });

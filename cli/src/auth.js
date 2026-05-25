@@ -6,7 +6,10 @@ import { authenticate } from '@google-cloud/local-auth';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
-const SCOPES = ['https://www.googleapis.com/auth/documents.readonly'];
+const SCOPES = [
+  'https://www.googleapis.com/auth/documents.readonly',
+  'https://www.googleapis.com/auth/spreadsheets.readonly',
+];
 
 const credentialsPath = process.env.GOOGLE_CREDENTIALS_PATH || './credentials.json';
 const tokenPath = process.env.GOOGLE_TOKEN_PATH || './token.json';

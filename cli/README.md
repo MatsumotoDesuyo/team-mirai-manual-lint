@@ -30,13 +30,17 @@ npm install
 
 ### 3. Google OAuth credentials.json の取得
 
-Doc を読み取るために Google Docs API への認証が必要。
+Doc を読み取るために Google Docs API と Google Sheets API への認証が必要。
 
 1. [Google Cloud Console](https://console.cloud.google.com/) でプロジェクトを作成（既存でも可）
-2. 「API とサービス → ライブラリ」で **Google Docs API** を有効化
+2. 「API とサービス → ライブラリ」で以下の 2 つを有効化:
+   - **Google Docs API**（マニュアル本文の取得用）
+   - **Google Sheets API**（校正用ルール・用語集スプレッドシートの取得用、B-TEXT-001/002/003 で使用）
 3. 「認証情報 → 認証情報を作成 → OAuth クライアント ID」を選択
 4. アプリケーションの種類: **デスクトップ アプリ**
 5. 作成後にダウンロードできる JSON を `cli/credentials.json` として保存
+
+> 既に Docs API のみで認証済みの場合は、Sheets API 有効化後に `npm run auth` を再実行してスコープを再取得してください（既存トークンは無効化されます）。
 
 ### 4. 環境変数の設定
 

@@ -1,6 +1,7 @@
 // Layer B ディスパッチャ。rules.json の layer === 'B' な行を取り出し、handlers から対応関数を呼ぶ。
 
 import { extractParagraphs, formatDocForPrompt } from './docFetcher.js';
+import { fetchGlossary, formatGlossaryForPrompt } from './glossaryFetcher.js';
 import { handlers } from './handlers/index.js';
 
 const GUIDELINES_EXCERPT = `
@@ -51,6 +52,25 @@ export async function runLayerB(doc, rules) {
   const systemBlocks = buildSystemBlocks(docText);
 
   const layerBRules = rules.rules.filter(r => r.layer === 'B');
+
+  // 用語集を必要とするルールがあれば、ユニークな sheet_id ごとに 1 回だけ取得する。
+  const glossaryCache = new Map(); // sheetId -> Markdown 文字列 or null（失敗）
+  const sheetIds = new Set(
+    layerBRules
+      .map(r => r.params?.glossary_sheet_id)
+      .filter(id => typeof id === 'string' && id.length > 0)
+  );
+  for (const sheetId of sheetIds) {
+    try {
+      process.stderr.write(`[info] 用語集スプレッドシート ${sheetId} を取得中...\n`);
+      const sheets = await fetchGlossary(sheetId);
+      glossaryCache.set(sheetId, formatGlossaryForPrompt(sheets));
+    } catch (e) {
+      process.stderr.write(`[warn] 用語集取得失敗 (${sheetId}): ${e.message}\n`);
+      glossaryCache.set(sheetId, null);
+    }
+  }
+
   const findings = [];
   let totalInputTokens = 0;
   let totalOutputTokens = 0;
@@ -71,7 +91,9 @@ export async function runLayerB(doc, rules) {
 
     try {
       process.stderr.write(`[${rule.id}] 判定中... `);
-      const result = await handler({ doc, paragraphs, systemBlocks, rule, params: rule.params || {} });
+      const glossarySheetId = rule.params?.glossary_sheet_id;
+      const glossaryMarkdown = glossarySheetId ? glossaryCache.get(glossarySheetId) : null;
+      const result = await handler({ doc, paragraphs, systemBlocks, rule, params: rule.params || {}, glossaryMarkdown });
       const ruleFindings = result.findings || [];
       findings.push(...ruleFindings);
       if (result.usage) {

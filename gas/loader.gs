@@ -21,6 +21,12 @@
 var TM_LINT_CONFIG = {
   rawBase: 'https://raw.githubusercontent.com/MatsumotoDesuyo/team-mirai-manual-lint/main',
   ref: 'main',
+  // options.writeDocReport: 末尾レポートを Doc 本文に書き込むか。
+  //   既定 false。サイドバー UI で結果は見られるため、本文書き込みは「Doc 汚し」になる。
+  //   どうしても本文に残したい場合のみ true に変更してから再貼り付け。
+  options: {
+    writeDocReport: false
+  },
   files: [
     'gas/lib/helpers.gs',
     'gas/lib/contrast.gs',
@@ -71,7 +77,12 @@ function tmLintRun() {
     // checker.gs が定義する tmLintExecuteChecks をディスパッチャとして呼ぶ。
     var doc = DocumentApp.getActiveDocument();
     var findings = tmLintExecuteChecks(doc, rules);
-    tmLintRenderReport(doc, findings, { rulesVersion: rules.version, ref: TM_LINT_CONFIG.ref });
+
+    // 既定では末尾レポートを書き込まない（[[feedback-no-doc-pollution]]）。
+    // 必要なら TM_LINT_CONFIG.options.writeDocReport = true で有効化。
+    if (TM_LINT_CONFIG.options && TM_LINT_CONFIG.options.writeDocReport) {
+      tmLintRenderReport(doc, findings, { rulesVersion: rules.version, ref: TM_LINT_CONFIG.ref });
+    }
 
     // サイドバー UI を表示（クリックで該当箇所にジャンプ）。
     var sha = tmLintFetchCommitSha_();

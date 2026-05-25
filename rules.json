@@ -444,6 +444,42 @@
       "handler": "llm.checkChapterStructure",
       "params": { "max_examples": 3 },
       "message": "Doc 全体の構成（前編・後編 / 章立て）がガイドライン推奨と異なります。"
+    },
+    {
+      "id": "B-TEXT-001",
+      "guideline_ref": "§2 表記ゆれ防止ルール / です・ます調統一",
+      "severity": "WARN",
+      "layer": "B",
+      "handler": "llm.checkDesuMasuStyle",
+      "params": {
+        "max_examples": 15,
+        "glossary_sheet_id": "1YhKZ48Cyel-_zq8Jcj580w0wViUE7KMX1u-651IEdp0"
+      },
+      "message": "「です・ます調」と「だ・である調」が混在しています。です・ます調に統一してください。"
+    },
+    {
+      "id": "B-TEXT-002",
+      "guideline_ref": "§2 表記ゆれ防止ルール / 英数字半角",
+      "severity": "WARN",
+      "layer": "B",
+      "handler": "llm.checkHalfwidthAlphanum",
+      "params": {
+        "max_examples": 20,
+        "glossary_sheet_id": "1YhKZ48Cyel-_zq8Jcj580w0wViUE7KMX1u-651IEdp0"
+      },
+      "message": "全角英数字が使われています。半角に統一してください。"
+    },
+    {
+      "id": "B-TEXT-003",
+      "guideline_ref": "§2 表記ゆれ防止ルール / 用語統一",
+      "severity": "WARN",
+      "layer": "B",
+      "handler": "llm.checkTermConsistency",
+      "params": {
+        "max_examples": 20,
+        "glossary_sheet_id": "1YhKZ48Cyel-_zq8Jcj580w0wViUE7KMX1u-651IEdp0"
+      },
+      "message": "用語集で「非推奨」とされる表記が使われています。推奨表記に統一してください。"
     }
   ]
 }
