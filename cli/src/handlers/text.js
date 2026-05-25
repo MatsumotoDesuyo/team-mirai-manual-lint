@@ -104,6 +104,7 @@ function normalizeFinding(f, rule) {
 }
 
 // 各ハンドラはプロンプトファイル名を指定するだけで生成される。
+// B-TEXT 系
 export const checkSentenceTopic = makeTextHandler('sentence-one-topic.md');
 export const checkSentenceLength = makeTextHandler('sentence-length.md');
 export const checkMissingParticle = makeTextHandler('missing-particle.md');
@@ -114,3 +115,15 @@ export const checkVerboseExpression = makeTextHandler('verbose-expression.md');
 export const checkPassiveVoice = makeTextHandler('passive-voice.md');
 export const checkDoubleNegation = makeTextHandler('double-negation.md');
 export const checkAmbiguousAdverb = makeTextHandler('ambiguous-adverb.md');
+export const checkTypo = makeTextHandler('typo.md');
+export const checkReadability = makeTextHandler('readability.md');
+export const checkPreferBullets = makeTextHandler('prefer-bullets.md');
+export const checkSolutionOriented = makeTextHandler('solution-oriented.md');
+export const checkFigureCaption = makeTextHandler('figure-caption.md');
+// B-TONE 系
+export const checkValuesAlignment = makeTextHandler('values-alignment.md');
+export const checkToneBalance = makeTextHandler('tone-balance.md');
+export const checkReaderPerspective = makeTextHandler('reader-perspective.md');
+// B-EMPHASIS / B-STRUCT
+export const checkEmphasisAsText = makeTextHandler('emphasis-as-text.md');
+export const checkChapterStructure = makeTextHandler('chapter-structure.md');

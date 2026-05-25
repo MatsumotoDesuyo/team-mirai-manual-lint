@@ -354,6 +354,96 @@
       "handler": "llm.checkAmbiguousAdverb",
       "params": { "max_examples": 15 },
       "message": "曖昧な副詞（適宜・適切に・丁寧に 等）が使われています。具体的・数値的な表現に書き直してください。"
+    },
+    {
+      "id": "B-TEXT-004",
+      "guideline_ref": "§2 作成後の確認 / 誤字脱字",
+      "severity": "WARN",
+      "layer": "B",
+      "handler": "llm.checkTypo",
+      "params": { "max_examples": 15 },
+      "message": "誤字・脱字・送り仮名の誤りが含まれています。"
+    },
+    {
+      "id": "B-TEXT-005",
+      "guideline_ref": "§2 作成後の確認 / 読みにくさ・わかりにくさ",
+      "severity": "WARN",
+      "layer": "B",
+      "handler": "llm.checkReadability",
+      "params": { "max_examples": 10 },
+      "message": "初心者にとって読みにくい・わかりにくい箇所があります。"
+    },
+    {
+      "id": "B-TEXT-008",
+      "guideline_ref": "§3 文章の基本 / 長文回避・箇条書き推奨",
+      "severity": "WARN",
+      "layer": "B",
+      "handler": "llm.checkPreferBullets",
+      "params": { "max_examples": 10 },
+      "message": "並列要素や手順が文章で書かれています。箇条書きに分解してください。"
+    },
+    {
+      "id": "B-TEXT-017",
+      "guideline_ref": "§3 表現の簡潔化 / 解決志向のメッセージ",
+      "severity": "WARN",
+      "layer": "B",
+      "handler": "llm.checkSolutionOriented",
+      "params": { "max_examples": 10 },
+      "message": "問題・禁止のみで推奨行動が示されていません。「では何をすべきか」を併記してください。"
+    },
+    {
+      "id": "B-TEXT-018",
+      "guideline_ref": "§3 情報設計 / 図表の補足説明",
+      "severity": "WARN",
+      "layer": "B",
+      "handler": "llm.checkFigureCaption",
+      "params": { "max_examples": 5 },
+      "message": "図表に補足説明（キャプション）が欠落しています。"
+    },
+    {
+      "id": "B-TONE-001",
+      "guideline_ref": "§1 チームみらいらしさ / 価値観の踏襲",
+      "severity": "WARN",
+      "layer": "B",
+      "handler": "llm.checkValuesAlignment",
+      "params": { "max_examples": 10 },
+      "message": "チームみらいの 5 つの価値観に反する表現が含まれています。"
+    },
+    {
+      "id": "B-TONE-002",
+      "guideline_ref": "§1 チームみらいらしさ / 文章のトーン",
+      "severity": "WARN",
+      "layer": "B",
+      "handler": "llm.checkToneBalance",
+      "params": { "max_examples": 10 },
+      "message": "文章のトーンがガイドライン基準（固すぎず・親切・丁寧・やさしく・楽しい）からズレています。"
+    },
+    {
+      "id": "B-TONE-003",
+      "guideline_ref": "§1 チームみらいらしさ / 読み手視点で書く",
+      "severity": "WARN",
+      "layer": "B",
+      "handler": "llm.checkReaderPerspective",
+      "params": { "max_examples": 10 },
+      "message": "運営側目線で書かれており、読み手（高校卒業直後・政治活動未経験のサポーター）の視点になっていません。"
+    },
+    {
+      "id": "B-EMPHASIS-001",
+      "guideline_ref": "§2 配色 / 強調は文章で表現",
+      "severity": "WARN",
+      "layer": "B",
+      "handler": "llm.checkEmphasisAsText",
+      "params": { "max_examples": 10 },
+      "message": "強調（太字・ハイライト）が文章で言い換え可能です。文章で表現してください。"
+    },
+    {
+      "id": "B-STRUCT-001",
+      "guideline_ref": "§3 全体の構成 / 前編後編・章立て",
+      "severity": "WARN",
+      "layer": "B",
+      "handler": "llm.checkChapterStructure",
+      "params": { "max_examples": 3 },
+      "message": "Doc 全体の構成（前編・後編 / 章立て）がガイドライン推奨と異なります。"
     }
   ]
 }

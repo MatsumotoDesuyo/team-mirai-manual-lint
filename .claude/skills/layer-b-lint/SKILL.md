@@ -41,8 +41,11 @@ URL からの ID 抽出:
 
 | ルール ID | プロンプトファイル | 状態 |
 |---|---|---|
+| B-TEXT-004 | [prompts/typo.md](./prompts/typo.md) | ✅ 本実装 |
+| B-TEXT-005 | [prompts/readability.md](./prompts/readability.md) | ✅ 本実装 |
 | B-TEXT-006 | [prompts/sentence-one-topic.md](./prompts/sentence-one-topic.md) | ✅ 本実装 |
 | B-TEXT-007 | [prompts/sentence-length.md](./prompts/sentence-length.md) | ✅ 本実装 |
+| B-TEXT-008 | [prompts/prefer-bullets.md](./prompts/prefer-bullets.md) | ✅ 本実装 |
 | B-TEXT-009 | [prompts/missing-particle.md](./prompts/missing-particle.md) | ✅ 本実装 |
 | B-TEXT-010 | [prompts/ranuki.md](./prompts/ranuki.md) | ✅ 本実装 |
 | B-TEXT-011 | [prompts/ga-consecutive.md](./prompts/ga-consecutive.md) | ✅ 本実装 |
@@ -51,8 +54,15 @@ URL からの ID 抽出:
 | B-TEXT-014 | [prompts/passive-voice.md](./prompts/passive-voice.md) | ✅ 本実装 |
 | B-TEXT-015 | [prompts/double-negation.md](./prompts/double-negation.md) | ✅ 本実装 |
 | B-TEXT-016 | [prompts/ambiguous-adverb.md](./prompts/ambiguous-adverb.md) | ✅ 本実装 |
+| B-TEXT-017 | [prompts/solution-oriented.md](./prompts/solution-oriented.md) | ✅ 本実装 |
+| B-TEXT-018 | [prompts/figure-caption.md](./prompts/figure-caption.md) | ✅ 本実装 |
+| B-TONE-001 | [prompts/values-alignment.md](./prompts/values-alignment.md) | ✅ 本実装 |
+| B-TONE-002 | [prompts/tone-balance.md](./prompts/tone-balance.md) | ✅ 本実装 |
+| B-TONE-003 | [prompts/reader-perspective.md](./prompts/reader-perspective.md) | ✅ 本実装 |
+| B-EMPHASIS-001 | [prompts/emphasis-as-text.md](./prompts/emphasis-as-text.md) | ✅ 本実装 |
+| B-STRUCT-001 | [prompts/chapter-structure.md](./prompts/chapter-structure.md) | ✅ 本実装 |
 
-上記以外の `rules.json` Layer B 行（B-TEXT-001〜005/008/017/018, B-TONE-001〜003, B-EMPHASIS-001, B-STRUCT-001）は **「未対応」と明示する**。誤った判定を生成しない。
+上記以外の `rules.json` Layer B 行（**B-TEXT-001 です・ます調統一 / B-TEXT-002 英数字半角統一 / B-TEXT-003 用語統一**）は **校正用ルール・用語集スプレッドシート連携待ちのため未対応**。誤った判定を生成しない。
 
 各ルールについて、対応するプロンプトファイルの「判定手順」「除外基準」「出力形式」に従って Doc を解析する。
 
