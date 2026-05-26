@@ -27,7 +27,7 @@
 
 3 ステップで Layer A チェッカーが使えます:
 
-1. **テンプレート Doc を「コピーを作成」**: <TEMPLATE_DOC_COPY_URL>
+1. **テンプレート Doc を「コピーを作成」**: https://docs.google.com/document/d/1shyLRRCg-K5VAdTvg-ryM1HEaClivII7xIsxNZmrGnA/edit?tab=t.0
 2. コピーした Doc を開き、「**マニュアルチェック → チェック実行**」をメニューから選択
 3. 初回は権限承認画面が出るので「許可」→ サイドバーに Layer A の Finding が並びます
 
