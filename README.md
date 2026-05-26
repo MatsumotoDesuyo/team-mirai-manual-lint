@@ -3,123 +3,185 @@
 チームみらい街頭活動マニュアル（Google Docs）が、チームみらい「マニュアル作成ガイドライン」に適合しているかを機械的にチェックするツール群。
 
 > **本ツールは個人サポーターによる非公式のコミュニティツールです。チームみらい公式のものではありません。**
-> 公開・配布の責任は個人サポーターに帰属します。法令・著作権・肖像権・トーンの最終判断は校正チームによる人間レビューが必須です。
+> 公開・配布の責任は個人サポーターに帰属します。法令・著作権・肖像権・最終トーン判断は校正チームによる人間レビューが必須です。
 
-## できること
+---
 
-機械で確実に潰せる項目を前段フィルタし、人間レビュー（校正チーム）が判断項目に集中できる状態を作ります。
+## アーキテクチャ
 
-| 層 | 担当 | 範囲 |
+判定の決定性で 3 層に分割しています（詳細は [DESIGN.md](DESIGN.md)）。
+
+| Layer | 担当 | 範囲 |
 |---|---|---|
-| **Layer A** | GAS（[gas/](gas/)） | 余白・行間・字下げ・フォント・色・コントラスト比・強調比率・絵文字検出・表スタイル・ページ番号・作成日記載・URL 形式・読点数・漢字連続 — 決定論で答えが一意に決まるもの |
-| **Layer B** | LLM CLI（[cli/](cli/)） | 一文長・受動態・二重否定・曖昧副詞・トーン・用語統一 — 意味判断を要するもの。Anthropic Claude API + Node.js |
-| **Layer C** | 人間（校正チーム） | 法令・著作権・肖像権・画像内容・改ページ後レイアウト — 機械判定対象外 |
+| **Layer A** | GAS（[gas/](gas/)） | 余白・行間・字下げ・フォント階層・色・コントラスト比・強調比率・絵文字検出・表スタイル・ページ番号・作成日記載・URL 形式・読点数・漢字連続 — **決定論で答えが一意に決まる 26 ルール** |
+| **Layer B** | Claude Code skill（[.claude/skills/layer-b-lint/](.claude/skills/layer-b-lint/)）/ CLI（[cli/](cli/)） | 一文長・受動態・二重否定・曖昧副詞・トーン・読み手視点・用語統一・誤字脱字など — **意味判断を要する 23 ルール** |
+| **Layer C** | 人間（校正チーム） | 法令・著作権・肖像権・画像内容・改ページ後レイアウト — **機械判定対象外** |
 
-詳細は [DESIGN.md](DESIGN.md) と [rules-matrix.md](rules-matrix.md) を参照。
+---
 
-## 導入手順（Layer A / Google Docs）
+## Quick Start
 
-本ツールは **Google Workspace Marketplace の Add-on ではありません**。テンプレート Doc をコピーするだけで導入が完了します。
+利用者ごとに 3 つの導線があります。自分の役割に合うものから読んでください。
 
-1. 配布されたテンプレート Doc を開き、メニュー「ファイル → コピーを作成」で自分のドライブに複製します。
-2. コピーした Doc を開き、上部メニューの「マニュアルチェック → 取得元の確認」を押して、コードの取得元（本リポジトリの raw URL）を確認します。
-3. 内容に問題がなければ「マニュアルチェック → チェック実行」を押します。初回のみ Google から権限承認のダイアログが表示されるので承認します。
-4. Doc 末尾に構造化レポートが追記されます。`ERROR` から優先して修正してください。
+### 🧑 サポーター向け（マニュアルを書く立場）
 
-### 仕組み（透明性）
+3 ステップで Layer A チェッカーが使えます:
 
-テンプレート Doc に含まれるスクリプトは [gas/loader.gs](gas/loader.gs) の薄いローダのみです。実行時に `UrlFetchApp` で本リポジトリの `main` ブランチから [rules.json](rules.json) と `gas/` 配下の各 `.gs` を取得し、ローダ内で評価して実行します。
+1. **テンプレート Doc を「コピーを作成」**: <TEMPLATE_DOC_COPY_URL>
+2. コピーした Doc を開き、「**マニュアルチェック → チェック実行**」をメニューから選択
+3. 初回は権限承認画面が出るので「許可」→ サイドバーに Layer A の Finding が並びます
 
-- コードとルールは公開リポジトリで常に監査可能です。
-- テンプレートを毎回更新する必要はなく、本リポジトリ側の更新が自動で全コピー Doc に反映されます（ドリフト断の設計）。
-- 取得元 URL とブランチ参照は実行ごとにレポート末尾に明示します。
+詳しい使い方:
+- サイドバーの各 Finding をクリックすると、本文の該当箇所が選択状態になります
+- 「✓ 解決」ボタンで対応済みマークを付けられます（Doc には書き込まれない、ローカルストレージに保存）
+- ERROR / WARN / INFO のフィルタで表示切替できます
 
-外部 URL からコードを取得して実行する点に懸念がある場合は、`gas/loader.gs` の `TM_LINT_CONFIG.ref` を特定タグ／コミット SHA に固定してください。
+うまく動かないとき → [docs/troubleshooting.md](docs/troubleshooting.md)
 
-## 導入手順（Layer B / LLM 意味判定）
+### 🤖 LLM 担当者向け（Layer B 判定の実行）
 
-Layer B は **LLM 担当者が手元で実行する** 別経路です。各サポーターのインストールは不要で、校正チームに渡す前段で 1 回実行する設計です（DESIGN.md §4.B）。
+校正チームに渡す前段で、各 Doc に対して **Layer B（意味判定）** を 1 回実行します。
 
-担当者の運用環境に応じて 2 経路を提供しています:
-
-### 推奨: Claude Code skill 経由
-
-担当者が Claude Code（Pro/Max 等）を契約しているなら、こちらが第 1 選択肢。**Anthropic API への個別課金が発生しません**。
+**推奨: Claude Code skill 経由**（API 個別課金が発生しません）
 
 1. このリポジトリを Claude Code で開く
 2. Google Drive MCP を有効化（接続済みなら不要）
 3. `/layer-b-lint <Doc URL>` を実行
-4. 結果が対話的に提示される。JSON が欲しい場合は「JSON で出して」と追記
+4. 23 ルールの判定結果が対話的に提示される。JSON が必要なら「JSON で」と追記
 
-skill 定義: [.claude/skills/layer-b-lint/SKILL.md](.claude/skills/layer-b-lint/SKILL.md)
-プロンプト本体: [.claude/skills/layer-b-lint/prompts/](.claude/skills/layer-b-lint/prompts/)（CLI と共有）
+詳細: [.claude/skills/layer-b-lint/SKILL.md](.claude/skills/layer-b-lint/SKILL.md)
 
-### 補助: CLI 経由
+**補助: CLI 経由**（CI 自動化 / Claude Code 非契約者）
 
-CI / GitHub Actions 連携が必要、または非 Claude Code 環境の担当者が実行する場合に使う選択肢。Anthropic API キーを直接消費します。
-
-セットアップと使い方は [cli/README.md](cli/README.md) を参照。
-
-### ルール実装状況
-
-本実装済み: B-TEXT-014（受動態回避）の 1 ルール。残り 22 ルールは順次実装中。skill 側のプロンプト追加で CLI 側も自動的に対応します（プロンプト共有設計）。
-
-## ファイル構成
-
-```
-team-mirai-manual-lint/
-├── CLAUDE.md               プロジェクト指示書（Claude Code 用）
-├── DESIGN.md               意思決定ログ（アーキテクチャ・配布方式・却下案）
-├── GUIDELINES.md           マニュアル作成ガイドラインのローカルキャッシュ
-├── rules-matrix.md         判定マトリクス（ガイドライン全項目の Layer 仕分け）
-├── rules.json              Layer A ルール定義（GAS が実行時に取得）
-├── gas/
-│   ├── loader.gs           テンプレート Doc に貼り付ける薄いローダ（onOpen / メニュー）
-│   ├── checker.gs          ディスパッチャ
-│   ├── report.gs           Doc 末尾に構造化レポートを出力
-│   ├── lib/
-│   │   ├── contrast.gs     WCAG 相対輝度・コントラスト比の固定式
-│   │   └── docwalk.gs      namedStyles 継承解決済みの Doc 走査ユーティリティ
-│   └── handlers/
-│       ├── color.gs        A-COLOR-001〜004（文字色・背景色・コントラスト）
-│       ├── font.gs         A-FONT-001〜007（フォントファミリ・サイズ階層）
-│       ├── layout.gs       A-LAYOUT-001〜004（余白・揃え・字下げ・行間）
-│       ├── emphasis.gs     A-EMPHASIS-001（強調比率）
-│       ├── table.gs        A-TABLE-001〜003（表スタイル・罫線）
-│       ├── chars.gs        A-CHARS-001（絵文字・機種依存文字）
-│       ├── meta.gs         A-META-001〜002（フッターページ番号・作成日記載）
-│       ├── link.gs         A-LINK-001〜002（URL 形式検査）
-│       └── text.gs         A-TEXT-001〜002（読点数・漢字連続）
-└── LICENSE
+```bash
+cd cli
+npm install
+npm run auth   # 初回のみ
+npm run lint -- --doc-url "<Doc URL>" --format md --output report.md
 ```
 
-## 現在の状態
+セットアップ詳細: [cli/README.md](cli/README.md)
 
-- **Layer A**: 全 26 ルール本実装完了。サイドバー UI 込みで実 Doc 動作確認済み
-- **Layer B**: 全 23 ルール本実装完了（うち B-TEXT-001/002/003 は校正用ルール・用語集スプレッドシート連携あり）。skill / CLI 両経路で動作
-- **Layer C**: 機械対象外（仕様）
+### 📝 校正チーム向け
 
-### Layer A 末尾レポートのオプション化
+サポーターから渡される Doc には以下が紐づいています:
 
-サイドバー UI 導入以降、Doc 末尾レポートは Doc を「汚す」要因になっていたため、**既定で OFF** に変更しました。サイドバーで結果は確認できます。必要な場合は `gas/loader.gs` の `TM_LINT_CONFIG.options.writeDocReport = true` に変更してください。
+- **サイドバー上の Layer A Finding**: Doc を開いて「マニュアルチェック → チェック実行」で再表示可能。書式・色・構造系の機械的違反 26 種
+- **Layer B 判定結果**: LLM 担当者から別途渡される（チャット履歴 or Markdown / JSON ファイル）。意味判定系 23 種
 
-## 自動化しない領域（人間確認に委ねる）
+これら 2 つを入力に、以下を判断するのが校正チームの役割です:
 
-[DESIGN.md §6](DESIGN.md) で明示しているとおり、以下は本ツールで判定しません。レポートには「人間確認 / 自動化対象外」タグで提示されます。
+- **法令・著作権・肖像権**（Layer A / B 対象外、必ず目視）
+- **トーンの最終判定**（Layer B の助言を参考に）
+- **画像の出所・許諾**
+- **改ページ後のレイアウト崩れ**
 
-- 総ページ数・改ページ後のレイアウト
-- 法令の正誤
+---
+
+## ガイドライン更新の取り込み
+
+判定基準であるガイドラインは Google Docs が原本で、リポジトリには [GUIDELINES.md](GUIDELINES.md) としてローカルキャッシュしています。
+
+原本が更新されたときの取り込み手順:
+
+```
+/update-guidelines        — 差分提示・上書き承認まで
+/update-guidelines --check — 差分のみ確認
+```
+
+詳細: [.claude/skills/update-guidelines/SKILL.md](.claude/skills/update-guidelines/SKILL.md)
+
+---
+
+## 機能一覧
+
+### Layer A: GAS で自動判定（26 ルール、本実装完了）
+
+[rules.json](rules.json) の `layer === "A"` 行を [gas/handlers/](gas/handlers/) が判定:
+
+- **余白・行間・揃え・字下げ**（A-LAYOUT-001〜004）
+- **フォントファミリ・サイズ階層**（A-FONT-001〜007、namedStyles 継承解決済み）
+- **配色・コントラスト**（A-COLOR-001〜004、WCAG 固定式）
+- **強調比率 ≦ 1割**（A-EMPHASIS-001）
+- **絵文字・機種依存文字**（A-CHARS-001）
+- **表スタイル・罫線**（A-TABLE-001〜003、Advanced Docs Service）
+- **ページ番号・作成日記載・リンク URL 形式**（A-META-001/002, A-LINK-001/002）
+- **読点数・漢字連続**（A-TEXT-001/002）
+
+### Layer B: LLM で意味判定（23 ルール、本実装完了）
+
+[rules.json](rules.json) の `layer === "B"` 行を skill / CLI が判定:
+
+- **文章スタイル・文法**: 1 文 1 トピック / 一文長 / 格助詞省略 / ら抜き言葉 / 「が」連続 / 修飾被修飾近接（B-TEXT-006/007/009〜012）
+- **表現の簡潔化**: 冗長表現 / 受動態回避 / 二重否定 / 曖昧副詞（B-TEXT-013/014/015/016）
+- **読みやすさ・構成**: 誤字脱字 / 読みにくさ / 箇条書き推奨 / 解決志向 / 図表補足（B-TEXT-004/005/008/017/018）
+- **トーン**: 価値観 / 文章のトーン / 読み手視点（B-TONE-001/002/003）
+- **強調・構成**: 強調文章化 / 章立て（B-EMPHASIS-001, B-STRUCT-001）
+- **用語集連携**: です・ます調 / 英数字半角 / 用語統一（B-TEXT-001/002/003）
+
+### skill 2 種
+
+- `/layer-b-lint <Doc URL>` — Layer B 判定
+- `/update-guidelines [--check]` — ガイドライン更新取り込み
+
+---
+
+## 自動化しない領域（人間専管）
+
+[DESIGN.md §6](DESIGN.md) で明示しているとおり、以下は機械判定対象外です:
+
+- 法令の正誤（公職選挙法・道路交通法等）
+- 著作権・肖像権・引用要件
 - 画像の出所・許諾・通行人の写り込み
-- 引用要件の充足判断
+- 改ページ後ページ数・レイアウト
+- 近接の原則（図表配置の視覚判定）
 
-`ERROR` がゼロでも、校正チームによる目視確認は必ず通してください。
+これらは校正チームによる目視確認が必須です。Layer A のサイドバーに **「人間確認領域」** として情報提示されますが、機械結果として「OK / NG」は出しません。
 
-## 開発・貢献
+---
 
-判定基準であるガイドラインは Google Docs 上で運用されており、本リポジトリにはローカルキャッシュ [GUIDELINES.md](GUIDELINES.md) があります。ガイドラインの更新手順は [CLAUDE.md](CLAUDE.md)「ガイドラインの参照と更新」を参照してください。
+## テンプレート Doc の作成（ミッションオーナー専用）
 
-設計判断や却下案については、新規提案・異論ともにまず [DESIGN.md](DESIGN.md) を読んでから議論してください。
+サポーター向けの「コピーを作成」リンクを公開する手順:
 
-## ライセンス
+→ [docs/setup-template-doc.md](docs/setup-template-doc.md)
 
-[LICENSE](LICENSE) を参照。
+---
+
+## トラブルシュート
+
+「サイドバーが開かない」「Docs is not defined」「検出結果が更新されない」など、過去に踏んだ罠と対処:
+
+→ [docs/troubleshooting.md](docs/troubleshooting.md)
+
+---
+
+## 開発者向け
+
+### 新しい Layer A ルールを追加する
+
+1. [rules-matrix.md](rules-matrix.md) に新ルールの行を追加（ID 採番、判定方法、想定誤検出）
+2. [rules.json](rules.json) にルール定義を追加（`layer: "A"`、`handler`、`params`、`message`）
+3. [gas/handlers/](gas/handlers/) の対応カテゴリ `.gs` に handler 関数を `this.checkXxx = function...` で追加
+4. raw キャッシュが効くので、push 後 5 分待ってから Doc で動作確認
+
+### 新しい Layer B ルールを追加する
+
+1. [rules-matrix.md](rules-matrix.md) に新ルールの行を追加
+2. [.claude/skills/layer-b-lint/prompts/](.claude/skills/layer-b-lint/prompts/) に判定基準を `.md` で作成（既存ファイルの構造を踏襲: 該当ガイドライン / 判定手順 / 除外基準 / 出力フィールド / 件数上限）
+3. [rules.json](rules.json) に Layer B 行を追加（`layer: "B"`、`handler: "llm.checkXxx"`、`message`）
+4. [cli/src/handlers/text.js](cli/src/handlers/text.js) に `export const checkXxx = makeTextHandler('<filename>.md');` を追加
+5. [cli/src/handlers/index.js](cli/src/handlers/index.js) に登録
+6. [.claude/skills/layer-b-lint/SKILL.md](.claude/skills/layer-b-lint/SKILL.md) の対応表に追加
+
+### ガイドラインを再取得する
+
+`/update-guidelines` skill を使用。詳細は skill 内の手順を参照。
+
+---
+
+## ライセンス・問い合わせ
+
+- ライセンス: [LICENSE](LICENSE)
+- 本ツールに関する問い合わせは、リポジトリ owner（個人サポーター）へ
+- チームみらい公式への問い合わせ先ではありません

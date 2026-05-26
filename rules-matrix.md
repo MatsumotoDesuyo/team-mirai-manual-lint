@@ -172,15 +172,16 @@
 
 Layer A は DESIGN.md §3 で想定される「強制可能項目の概ね8割」に対し、本マトリクスでは件数比 26/(26+23) ≒ 53%（OUT を除外した自動化対象比）にとどまる。これは「わかりやすさ」§3 が多くを意味判定（Layer B）に依存するため。**書式・配色・構造系は Layer A で網羅できている**ことが本マトリクスの主目的で、その点では充足。
 
-## Layer A 実装優先度（次の rules.json / GAS 雛形で扱う範囲）
+## 実装状況
 
-優先度の高い順（人間レビュー負荷が高く、機械化のリターンが大きい順）:
+| Layer | 状態 |
+|---|---|
+| **Layer A**（GAS 決定論） | **26 / 26 ✅ 全ルール本実装完了**。サイドバー UI（フィルタ・解決済みマーク・コミット SHA 表示）、Advanced Docs Service 連携、namedStyles 継承解決、用語集連携固有名詞除外、ListItem 除外などをすべて含む |
+| **Layer B**（LLM 意味判定） | **23 / 23 ✅ 全ルール本実装完了**。skill (`/layer-b-lint`) と CLI (`cli/`) の両経路。プロンプトキャッシュ採用、用語集連携 3 ルール（B-TEXT-001/002/003）含む |
+| OUT（自動化対象外） | 9 件、機械判定対象外として INFO 提示（仕様通り、Layer C 人間専管） |
 
-1. `A-COLOR-001`〜`A-COLOR-004`, `A-EMPHASIS-001`, `A-CHARS-001`（配色・装飾系）
-2. `A-FONT-001`〜`A-FONT-007`（フォント階層）
-3. `A-LAYOUT-001`〜`A-LAYOUT-004`（余白・行間・揃え・字下げ）
-4. `A-TABLE-001`〜`A-TABLE-003`（表）
-5. `A-META-001`, `A-META-002`, `A-LINK-001`, `A-LINK-002`（メタ・リンク）
-6. `A-TEXT-001`, `A-TEXT-002`（読点・漢字連続：決定論可能な文章ルール）
+実装位置の対応:
+- Layer A: [rules.json](rules.json) の `layer: "A"` 行 → [gas/handlers/](gas/handlers/) の `checkXxx` 関数
+- Layer B: [rules.json](rules.json) の `layer: "B"` 行 → [.claude/skills/layer-b-lint/prompts/](.claude/skills/layer-b-lint/prompts/) の `<name>.md`（skill / CLI 共通プロンプト正本）+ [cli/src/handlers/text.js](cli/src/handlers/text.js) の `checkXxx` ハンドラ
 
-[rules.json](rules.json) と `gas/handlers/*.gs` はこの順序で骨格を起こす。
+新ルール追加手順は [README.md](README.md)「開発者向け」セクションを参照。

@@ -186,3 +186,9 @@ Google Docs 上で執筆されるチームみらい街頭活動マニュアル�
 
 - `team-mirai-manual-lint` という命名で個人サポーター公開とする。README で「非公式・コミュニティツール」を明示する。
 - 既存の親プロジェクト（trinity-nexus）とは独立した別リポジトリとして開始する。設計コンテキストは本ドキュメントと CLAUDE.md で持ち運ぶ。
+- **Layer A 全 26 ルール本実装完了** — 判定マトリクス → rules.json → 雛形 → easy wins → namedStyles 継承解決（Advanced Docs Service） → 色・コントラスト → 強調・絵文字・表 → フッターページ番号、の順で段階的に本実装。サイドバー UI（フィルタ・解決済みマーク・コミット SHA 表示）も完成。実 Doc で動作確認済、誤検出ゼロ。
+- **Layer B 全 23 ルール本実装完了** — Node.js + Anthropic Claude API（既定 `claude-sonnet-4-6`）。プロンプトキャッシュ採用（ガイドライン抜粋 + Doc 全文を system に置いて全ルールで共有）。用語集連携 3 ルール（B-TEXT-001/002/003）は Google Sheets API でスプレッドシートから取得。
+- **Layer B 配布方式に Claude Code skill を主経路として追加** — 担当者の Anthropic API 個別課金を回避できる現実的な選択肢として `/layer-b-lint` skill を導入。CLI は CI / 非 Claude Code 担当者向けの補助に降格。プロンプト本体は `.claude/skills/layer-b-lint/prompts/` に正本を一元化し、両経路から参照することで判定のブレを防止。
+- **Layer A 末尾レポートを OFF 化** — サイドバー UI 導入以降、Doc 末尾への自動書き込みは Doc を汚す要因になっていた。`TM_LINT_CONFIG.options.writeDocReport = false` を既定とし、必要時のみ有効化。
+- **`/update-guidelines` skill 追加** — CLAUDE.md「ガイドラインの参照と更新」運用フローを半自動化。Drive MCP で原本取得 → 差分提示 → 影響範囲分析 → 承認 → 上書き、まで対応。法令節（§4）の言い換え禁止・コード自動変更禁止を明示。
+- **配布整備フェーズ着手** — 「テンプレート Doc コピー → サポーター利用」の運用導線を整備（[docs/setup-template-doc.md](docs/setup-template-doc.md) / [docs/troubleshooting.md](docs/troubleshooting.md) / README 全面リライト）。Apps Script のサービス設定が Doc コピー時に引き継がれる挙動を利用し、サポーター側の手順を「コピー → 権限承認 → 実行」の 3 ステップに最小化。
