@@ -84,6 +84,46 @@ this.checkHeadingStyle = function(ctx, params, rule) {
   return findings;
 };
 
+// ============================================================
+// autoFix 関数群（サイドバー UI の「⚡ 適用」ボタンから呼ばれる）
+// ============================================================
+
+this.fixFontFamily = function(doc, finding, params) {
+  var para = tmLintGetParagraphFromFinding_(doc, finding);
+  if (!para) return { ok: false, error: '対象段落が見つかりません' };
+  var allowed = (params.allowed_fonts && params.allowed_fonts[0]) || 'Noto Sans JP';
+  var text = para.editAsText();
+  var range = tmLintResolveRunRange_(text, finding);
+  if (!range) return { ok: false, error: 'テキスト範囲が空です' };
+  text.setFontFamily(range.start, range.endInclusive, allowed);
+  return { ok: true, message: 'フォントを ' + allowed + ' に設定しました' };
+};
+
+this.fixHeadingStyle = function(doc, finding, params) {
+  var para = tmLintGetParagraphFromFinding_(doc, finding);
+  if (!para) return { ok: false, error: '対象段落が見つかりません' };
+  var text = para.editAsText();
+  var range = tmLintResolveRunRange_(text, finding);
+  if (!range) return { ok: false, error: 'テキスト範囲が空です' };
+  text.setFontSize(range.start, range.endInclusive, params.size_pt);
+  // 本文 (allow_bold_for_emphasis: true) では bold を強制しない（強調を残す）
+  if (!params.allow_bold_for_emphasis) {
+    text.setBold(range.start, range.endInclusive, params.bold === true);
+  }
+  var summary = params.size_pt + 'pt' + (params.bold && !params.allow_bold_for_emphasis ? ' 太字' : '');
+  return { ok: true, message: params.heading_type + ' を ' + summary + ' に設定しました' };
+};
+
+this.fixMinFontSize = function(doc, finding, params) {
+  var para = tmLintGetParagraphFromFinding_(doc, finding);
+  if (!para) return { ok: false, error: '対象段落が見つかりません' };
+  var text = para.editAsText();
+  var range = tmLintResolveRunRange_(text, finding);
+  if (!range) return { ok: false, error: 'テキスト範囲が空です' };
+  text.setFontSize(range.start, range.endInclusive, params.min_size_pt || 11);
+  return { ok: true, message: 'フォントサイズを ' + (params.min_size_pt || 11) + 'pt に設定しました' };
+};
+
 this.checkMinFontSize = function(ctx, params, rule) {
   if (!ctx.walked || !ctx.walked.paragraphs) return [];
   if (!ctx.walked.namedStylesAvailable) {

@@ -123,6 +123,24 @@
     .resolve-btn:hover { background: #f0f0f0; border-color: #999; }
     .finding.resolved .resolve-btn { background: #e8f5e9; border-color: #66bb6a; color: #2e7d32; }
 
+    .apply-btn {
+      position: absolute;
+      top: 6px;
+      right: 64px;
+      background: #fffbe6;
+      border: 1px solid #fbc02d;
+      border-radius: 3px;
+      padding: 1px 6px;
+      font-size: 10px;
+      cursor: pointer;
+      color: #795548;
+    }
+    .apply-btn:hover { background: #fff59d; border-color: #f9a825; }
+    .apply-btn:disabled { opacity: 0.6; cursor: wait; }
+    .apply-btn.applied { background: #c8e6c9; border-color: #43a047; color: #1b5e20; cursor: default; }
+    .finding.applied { background: #f1f8e9; }
+    .finding.applied .rule-id::after { content: ' ⚡'; color: #43a047; }
+
     .actions {
       font-size: 11px;
       margin-bottom: 6px;
@@ -176,6 +194,7 @@
     var FINDINGS = <?!= JSON.stringify(findings) ?>;
     var DOC_ID = <?!= JSON.stringify(docId) ?>;
     var RESOLVED_PREFIX = 'tm-lint:resolved:' + DOC_ID + ':';
+    var APPLIED_PREFIX = 'tm-lint:applied:' + DOC_ID + ':';
 
     function isJumpable(f) {
       if (!f.location) return false;
@@ -245,12 +264,66 @@
       } catch (e) {}
     }
 
+    // 適用済み状態の key（解決済みと同じハッシュ規則）
+    function appliedKey(f) {
+      var sigParts = [
+        f.ruleId,
+        (f.location && typeof f.location.index === 'number') ? f.location.index : '',
+        (typeof f.startOffset === 'number') ? f.startOffset : '',
+        (f.snippet || '').substring(0, 40)
+      ];
+      return APPLIED_PREFIX + sigParts.join('|');
+    }
+    function isApplied(f) {
+      try { return localStorage.getItem(appliedKey(f)) === '1'; }
+      catch (e) { return false; }
+    }
+    function markApplied(f) {
+      try { localStorage.setItem(appliedKey(f), '1'); } catch (e) {}
+    }
+
+    function canApply(f) {
+      return f && f.severity === 'ERROR' && f.autoFixable === true;
+    }
+
+    function applyFix(event, idx) {
+      event.stopPropagation();
+      var f = FINDINGS[idx];
+      if (!canApply(f)) return;
+      var btn = event.currentTarget;
+      var original = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = '⏳ 適用中…';
+      google.script.run
+        .withSuccessHandler(function(result) {
+          btn.disabled = false;
+          if (result && result.ok) {
+            btn.textContent = '✅ 適用済';
+            btn.classList.add('applied');
+            markApplied(f);
+            var elem = btn.closest('.finding');
+            if (elem) elem.classList.add('applied');
+          } else {
+            btn.textContent = original;
+            alert('適用失敗: ' + (result && result.error ? result.error : '不明なエラー'));
+          }
+        })
+        .withFailureHandler(function(err) {
+          btn.disabled = false;
+          btn.textContent = original;
+          alert('適用エラー: ' + (err && err.message ? err.message : err));
+        })
+        .tmLintApplyFix(JSON.stringify(f));
+    }
+
     function renderFinding(f, idx) {
       var jumpable = isJumpable(f);
       var hint = (f.location && f.location.hint) ? f.location.hint : '';
       var resolved = isResolved(f);
+      var applied = isApplied(f);
+      var applicable = canApply(f);
       var html = '';
-      html += '<div class="finding ' + (jumpable ? 'clickable ' : '') + (resolved ? 'resolved ' : '') + '"';
+      html += '<div class="finding ' + (jumpable ? 'clickable ' : '') + (resolved ? 'resolved ' : '') + (applied ? 'applied ' : '') + '"';
       html += ' data-severity="' + escapeHtml(f.severity || 'INFO') + '"';
       html += ' data-resolved="' + (resolved ? '1' : '0') + '"';
       html += ' data-idx="' + idx + '"';
@@ -259,6 +332,11 @@
       html += '<button class="resolve-btn" onclick="toggleResolved(event, ' + idx + ')">';
       html += resolved ? '↩ 戻す' : '✓ 解決';
       html += '</button>';
+      if (applicable) {
+        html += '<button class="apply-btn ' + (applied ? 'applied' : '') + '" onclick="applyFix(event, ' + idx + ')">';
+        html += applied ? '✅ 適用済' : '⚡ 適用';
+        html += '</button>';
+      }
       html += '<div class="finding-header">';
       html += '<span class="rule-id">[' + escapeHtml(f.ruleId) + ']</span>';
       if (f.guidelineRef) {

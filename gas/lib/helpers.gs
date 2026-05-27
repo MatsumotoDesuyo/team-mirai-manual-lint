@@ -50,8 +50,48 @@ this.tmLintMakeFinding_ = function(rule, opts) {
     snippet: opts.snippet || '',
     message: opts.message || rule.message || '',
     implementationNote: opts.implementationNote || '',
-    autoFixable: opts.autoFixable === true
+    autoFixable: (typeof opts.autoFixable === 'boolean') ? opts.autoFixable : (rule.autoFixable === true),
+    autoFix: rule.autoFix || null
   };
+};
+
+// finding.location.index から段落（Paragraph or ListItem）要素を取得するヘルパー。
+// fix 関数群が共通で使う。見つからない / 型不一致なら null を返す。
+this.tmLintGetParagraphFromFinding_ = function(doc, finding) {
+  var body = doc.getBody();
+  var idx = (finding && finding.location && typeof finding.location.index === 'number')
+    ? finding.location.index : -1;
+  if (idx < 0 || idx >= body.getNumChildren()) return null;
+  var element = body.getChild(idx);
+  var type = element.getType();
+  if (type !== DocumentApp.ElementType.PARAGRAPH &&
+      type !== DocumentApp.ElementType.LIST_ITEM) return null;
+  return (type === DocumentApp.ElementType.PARAGRAPH) ? element.asParagraph() : element.asListItem();
+};
+
+// finding.location.index から Table 要素を取得するヘルパー。
+this.tmLintGetTableFromFinding_ = function(doc, finding) {
+  var body = doc.getBody();
+  var idx = (finding && finding.location && typeof finding.location.index === 'number')
+    ? finding.location.index : -1;
+  if (idx < 0 || idx >= body.getNumChildren()) return null;
+  var element = body.getChild(idx);
+  if (element.getType() !== DocumentApp.ElementType.TABLE) return null;
+  return element.asTable();
+};
+
+// 段落内の startOffset / endOffset から、setXxx(start, endInclusive, value) 用の範囲を作る。
+// 戻り値: { start, endInclusive } または null（テキストなしなど）
+this.tmLintResolveRunRange_ = function(text, finding) {
+  var textLen = text.getText().length;
+  if (textLen === 0) return null;
+  var start = (typeof finding.startOffset === 'number') ? finding.startOffset : 0;
+  var end = (typeof finding.endOffset === 'number') ? finding.endOffset : textLen;
+  if (end > textLen) end = textLen;
+  if (end <= start) return null;
+  var safeStart = Math.max(0, Math.min(start, textLen - 1));
+  var safeEndInclusive = Math.max(safeStart, Math.min(end - 1, textLen - 1));
+  return { start: safeStart, endInclusive: safeEndInclusive };
 };
 
 // cm → pt 換算（1in = 2.54cm = 72pt → 1cm ≒ 28.3464567pt）。

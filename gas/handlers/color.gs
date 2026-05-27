@@ -141,3 +141,40 @@ this.checkContrast = function(ctx, params, rule) {
   }
   return findings;
 };
+
+// ============================================================
+// autoFix 関数群（サイドバー UI の「⚡ 適用」ボタンから呼ばれる）
+// ============================================================
+
+this.fixDefaultTextColor = function(doc, finding, params) {
+  var para = tmLintGetParagraphFromFinding_(doc, finding);
+  if (!para) return { ok: false, error: '対象段落が見つかりません' };
+  var text = para.editAsText();
+  var range = tmLintResolveRunRange_(text, finding);
+  if (!range) return { ok: false, error: 'テキスト範囲が空です' };
+  var color = params.default_color || '#000000';
+  text.setForegroundColor(range.start, range.endInclusive, color);
+  return { ok: true, message: '文字色を ' + color + ' に設定しました' };
+};
+
+this.fixForbiddenTextColor = function(doc, finding, params) {
+  // 禁色（ミントグリーン等）を黒に置換
+  var para = tmLintGetParagraphFromFinding_(doc, finding);
+  if (!para) return { ok: false, error: '対象段落が見つかりません' };
+  var text = para.editAsText();
+  var range = tmLintResolveRunRange_(text, finding);
+  if (!range) return { ok: false, error: 'テキスト範囲が空です' };
+  text.setForegroundColor(range.start, range.endInclusive, '#000000');
+  return { ok: true, message: '禁色を解除し文字色を #000000 にしました' };
+};
+
+this.fixAllowedHighlightColor = function(doc, finding, params) {
+  // 不正な背景色を解除（背景なしにする = 強調を解除して文章で表現を促す）
+  var para = tmLintGetParagraphFromFinding_(doc, finding);
+  if (!para) return { ok: false, error: '対象段落が見つかりません' };
+  var text = para.editAsText();
+  var range = tmLintResolveRunRange_(text, finding);
+  if (!range) return { ok: false, error: 'テキスト範囲が空です' };
+  text.setBackgroundColor(range.start, range.endInclusive, null);
+  return { ok: true, message: '背景色を解除しました（強調は文章で表現するのが推奨）' };
+};

@@ -91,3 +91,47 @@ this.checkLineSpacing = function(ctx, params, rule) {
 function tmLintSafeBodyAttr_(body, methodName) {
   try { return body[methodName](); } catch (e) { return null; }
 }
+
+// ============================================================
+// autoFix 関数群（サイドバー UI の「⚡ 適用」ボタンから呼ばれる）
+// ============================================================
+
+this.fixMargins = function(doc, finding, params) {
+  var body = doc.getBody();
+  var expectedPt = tmLintCmToPt(params.margin_cm);
+  var hint = (finding.location && finding.location.hint) ? finding.location.hint : '';
+  var sides = [];
+  if (hint.indexOf('上余白') !== -1) { body.setMarginTop(expectedPt); sides.push('上'); }
+  else if (hint.indexOf('下余白') !== -1) { body.setMarginBottom(expectedPt); sides.push('下'); }
+  else if (hint.indexOf('左余白') !== -1) { body.setMarginLeft(expectedPt); sides.push('左'); }
+  else if (hint.indexOf('右余白') !== -1) { body.setMarginRight(expectedPt); sides.push('右'); }
+  else {
+    body.setMarginTop(expectedPt);
+    body.setMarginBottom(expectedPt);
+    body.setMarginLeft(expectedPt);
+    body.setMarginRight(expectedPt);
+    sides.push('上下左右');
+  }
+  return { ok: true, message: sides.join('') + '余白を ' + params.margin_cm + 'cm に設定しました' };
+};
+
+this.fixLeftAlignment = function(doc, finding, params) {
+  var para = tmLintGetParagraphFromFinding_(doc, finding);
+  if (!para) return { ok: false, error: '対象段落が見つかりません' };
+  para.setAlignment(DocumentApp.HorizontalAlignment.LEFT);
+  return { ok: true, message: '段落を左揃えに設定しました' };
+};
+
+this.fixFirstLineIndent = function(doc, finding, params) {
+  var para = tmLintGetParagraphFromFinding_(doc, finding);
+  if (!para) return { ok: false, error: '対象段落が見つかりません' };
+  para.setIndentFirstLine(params.first_line_indent_pt || 0);
+  return { ok: true, message: '段落初め字下げを 0 に設定しました' };
+};
+
+this.fixLineSpacing = function(doc, finding, params) {
+  var para = tmLintGetParagraphFromFinding_(doc, finding);
+  if (!para) return { ok: false, error: '対象段落が見つかりません' };
+  para.setLineSpacing(params.line_spacing || 1.15);
+  return { ok: true, message: '行間を ' + (params.line_spacing || 1.15) + ' に設定しました' };
+};

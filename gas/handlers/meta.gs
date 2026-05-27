@@ -141,3 +141,16 @@ this.checkCreatedUpdatedDate = function(ctx, params, rule) {
     message: rule.message
   })];
 };
+
+// ============================================================
+// autoFix 関数（サイドバー UI の「⚡ 適用」ボタンから呼ばれる）
+// ============================================================
+
+this.fixCreatedUpdatedDate = function(doc, finding, params) {
+  var body = doc.getBody();
+  var tz = Session.getScriptTimeZone() || 'Asia/Tokyo';
+  var today = Utilities.formatDate(new Date(), tz, 'yyyy年M月d日');
+  body.appendParagraph('').appendHorizontalRule();
+  body.appendParagraph(today + '作成');
+  return { ok: true, message: '本文末尾に「' + today + '作成」を追記しました' };
+};

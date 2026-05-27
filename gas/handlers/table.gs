@@ -139,3 +139,69 @@ this.checkTableBorder = function(ctx, params, rule) {
   }
   return findings;
 };
+
+// ============================================================
+// autoFix 関数群（サイドバー UI の「⚡ 適用」ボタンから呼ばれる）
+// ============================================================
+
+// 表セル内の段落の文字色を一括設定するヘルパー（fixTableHeaderRow / fixTableHeaderColumn 共通）
+function tmLintSetCellForeground_(cell, expectedFg) {
+  var numChildren = 0;
+  try { numChildren = cell.getNumChildren(); } catch (e) { return; }
+  for (var i = 0; i < numChildren; i++) {
+    var child = cell.getChild(i);
+    var t = child.getType();
+    if (t !== DocumentApp.ElementType.PARAGRAPH &&
+        t !== DocumentApp.ElementType.LIST_ITEM) continue;
+    var para = (t === DocumentApp.ElementType.PARAGRAPH) ? child.asParagraph() : child.asListItem();
+    var text = para.editAsText();
+    var len = text.getText().length;
+    if (len > 0) text.setForegroundColor(0, len - 1, expectedFg);
+  }
+}
+
+this.fixTableHeaderRow = function(doc, finding, params) {
+  var table = tmLintGetTableFromFinding_(doc, finding);
+  if (!table) return { ok: false, error: '対象テーブルが見つかりません' };
+  if (table.getNumRows() === 0) return { ok: false, error: '空のテーブルです' };
+  var headerRow = table.getRow(0);
+  var expectedBg = params.bg || '#666666';
+  var expectedFg = params.fg || '#ffffff';
+  var n = headerRow.getNumCells();
+  for (var c = 0; c < n; c++) {
+    var cell = headerRow.getCell(c);
+    cell.setBackgroundColor(expectedBg);
+    tmLintSetCellForeground_(cell, expectedFg);
+  }
+  return { ok: true, message: '表見出し行を bg=' + expectedBg + '/fg=' + expectedFg + ' に設定しました' };
+};
+
+this.fixTableHeaderColumn = function(doc, finding, params) {
+  var table = tmLintGetTableFromFinding_(doc, finding);
+  if (!table) return { ok: false, error: '対象テーブルが見つかりません' };
+  var expectedBg = params.bg || '#666666';
+  var expectedFg = params.fg || '#000000';
+  var numRows = table.getNumRows();
+  for (var r = 0; r < numRows; r++) {
+    var row = table.getRow(r);
+    if (row.getNumCells() === 0) continue;
+    var cell = row.getCell(0);
+    cell.setBackgroundColor(expectedBg);
+    tmLintSetCellForeground_(cell, expectedFg);
+  }
+  return { ok: true, message: '表見出し列を bg=' + expectedBg + '/fg=' + expectedFg + ' に設定しました' };
+};
+
+this.fixTableBorder = function(doc, finding, params) {
+  var table = tmLintGetTableFromFinding_(doc, finding);
+  if (!table) return { ok: false, error: '対象テーブルが見つかりません' };
+  var color = params.color || '#ffffff';
+  var widthPt = (typeof params.width_pt === 'number') ? params.width_pt : 1;
+  try {
+    table.setBorderColor(color);
+    table.setBorderWidth(widthPt);
+    return { ok: true, message: '罫線を color=' + color + '/width=' + widthPt + 'pt に設定しました' };
+  } catch (e) {
+    return { ok: false, error: '罫線の自動修正に失敗（DocumentApp API 制約）: ' + e.message };
+  }
+};

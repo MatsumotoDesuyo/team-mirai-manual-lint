@@ -87,6 +87,9 @@ function tmLintNormalizeFinding_(f, rule) {
     snippet: f.snippet || '',
     message: f.message || rule.message || '',
     implementationNote: f.implementationNote || '',
-    autoFixable: f.autoFixable === true
+    // autoFixable は finding 個別の値があれば優先、なければ rule のデフォルト
+    autoFixable: (typeof f.autoFixable === 'boolean') ? f.autoFixable : (rule.autoFixable === true),
+    // autoFix 関数名（loader.gs の tmLintApplyFix が dispatch に使う）
+    autoFix: f.autoFix || rule.autoFix || null
   };
 }

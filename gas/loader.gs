@@ -133,6 +133,38 @@ function _tmLintAdvancedDocsScopeHint_() {
 }
 
 /**
+ * Doc 書き込み系 API のスコープを Apps Script 静的解析に認識させるためのダミー関数。
+ * autoFix 系は handlers/*.gs（リモート eval）で setAlignment / setLineSpacing / setFontFamily
+ * 等を呼ぶ。リモートのコードは静的解析対象外なので、ここに静的呼び出しを残す。
+ * （`Ui.showSidebar` で踏んだ罠と同じパターン。[[project-gas-remote-loader-constraints]]）
+ */
+function _tmLintDocWriteScopeHint_() {
+  if (false) {
+    var body = DocumentApp.getActiveDocument().getBody();
+    body.setMarginTop(56.69);
+    body.setMarginBottom(56.69);
+    body.setMarginLeft(56.69);
+    body.setMarginRight(56.69);
+    body.appendParagraph('').appendHorizontalRule();
+    var p = body.getChild(0).asParagraph();
+    p.setAlignment(DocumentApp.HorizontalAlignment.LEFT);
+    p.setLineSpacing(1.15);
+    p.setIndentFirstLine(0);
+    var t = p.editAsText();
+    t.setFontFamily(0, 0, 'Noto Sans JP');
+    t.setFontSize(0, 0, 11);
+    t.setBold(0, 0, false);
+    t.setForegroundColor(0, 0, '#000000');
+    t.setBackgroundColor(0, 0, '#b4f2e8');
+    // 表系
+    var tbl = body.getChild(0).asTable();
+    tbl.setBorderColor('#ffffff');
+    tbl.setBorderWidth(1);
+    tbl.getRow(0).getCell(0).setBackgroundColor('#666666');
+  }
+}
+
+/**
  * サイドバーを表示する。
  *
  * 静的に loader.gs に置く理由:
@@ -189,6 +221,52 @@ function tmLintFetchCommitSha_() {
     }
   } catch (e) {}
   return '';
+}
+
+/**
+ * サイドバーから google.script.run 経由で呼ばれる、ERROR 自動修正適用関数。
+ * google.script.run の制約 ([[project-gas-remote-loader-constraints]]) によりバウンド側に静的記述。
+ *
+ * 引数: finding（JSON 文字列）。rule.autoFix に対応する関数を handlers/*.gs から
+ *       リモートロード → eval → dispatch する。
+ * 戻り値: { ok: boolean, message?: string, error?: string }
+ */
+function tmLintApplyFix(findingJson) {
+  try {
+    var finding = JSON.parse(findingJson);
+    if (!finding || !finding.ruleId) {
+      return { ok: false, error: '不正な finding データ' };
+    }
+
+    // tmLintRun と同じパターンでリモートロード（適用前に最新コードを取得）
+    var sources = tmLintFetchAll_();
+    var rules = JSON.parse(sources.rulesText);
+    for (var i = 0; i < sources.codes.length; i++) {
+      eval(sources.codes[i]);
+    }
+
+    // rules.json から該当ルールを検索
+    var rule = null;
+    for (var r = 0; r < rules.rules.length; r++) {
+      if (rules.rules[r].id === finding.ruleId) { rule = rules.rules[r]; break; }
+    }
+    if (!rule) return { ok: false, error: 'ルールが見つかりません: ' + finding.ruleId };
+    if (rule.autoFixable !== true) return { ok: false, error: 'このルールは自動修正対象外です' };
+
+    var fixName = finding.autoFix || rule.autoFix;
+    if (!fixName) return { ok: false, error: 'autoFix 関数名が定義されていません' };
+
+    var fixFn = this[fixName];
+    if (typeof fixFn !== 'function') {
+      return { ok: false, error: 'autoFix 関数が見つかりません: ' + fixName };
+    }
+
+    var doc = DocumentApp.getActiveDocument();
+    var result = fixFn(doc, finding, rule.params || {});
+    return result || { ok: true };
+  } catch (e) {
+    return { ok: false, error: e.message + (e.stack ? '\n' + e.stack : '') };
+  }
 }
 
 /**

@@ -22,6 +22,8 @@
       "severity": "ERROR",
       "handler": "checkMargins",
       "params": { "margin_cm": 2 },
+      "autoFixable": true,
+      "autoFix": "fixMargins",
       "message": "ページ余白が上下左右 2cm に設定されていません。"
     },
     {
@@ -30,6 +32,8 @@
       "severity": "ERROR",
       "handler": "checkLeftAlignment",
       "params": { "exempt_contexts": ["table_cell"] },
+      "autoFixable": true,
+      "autoFix": "fixLeftAlignment",
       "message": "段落配置が左揃え以外になっています。"
     },
     {
@@ -38,6 +42,8 @@
       "severity": "ERROR",
       "handler": "checkFirstLineIndent",
       "params": { "first_line_indent_pt": 0 },
+      "autoFixable": true,
+      "autoFix": "fixFirstLineIndent",
       "message": "段落初めの字下げが設定されています（字下げは行わず段落間のスペースで区切ること）。"
     },
     {
@@ -46,6 +52,8 @@
       "severity": "ERROR",
       "handler": "checkLineSpacing",
       "params": { "line_spacing": 1.15 },
+      "autoFixable": true,
+      "autoFix": "fixLineSpacing",
       "message": "段落の行間が 1.15 に設定されていません。"
     },
     {
@@ -54,6 +62,8 @@
       "severity": "ERROR",
       "handler": "checkFontFamily",
       "params": { "allowed_fonts": ["Noto Sans JP", "Noto Sans"] },
+      "autoFixable": true,
+      "autoFix": "fixFontFamily",
       "message": "Noto Sans JP / Noto Sans 以外のフォントが使用されています。"
     },
     {
@@ -62,6 +72,8 @@
       "severity": "ERROR",
       "handler": "checkHeadingStyle",
       "params": { "heading_type": "TITLE", "size_pt": 21, "bold": true },
+      "autoFixable": true,
+      "autoFix": "fixHeadingStyle",
       "message": "タイトルのスタイルが 21pt 太字になっていません。"
     },
     {
@@ -70,6 +82,8 @@
       "severity": "ERROR",
       "handler": "checkHeadingStyle",
       "params": { "heading_type": "HEADING1", "size_pt": 18, "bold": true },
+      "autoFixable": true,
+      "autoFix": "fixHeadingStyle",
       "message": "見出し 1 のスタイルが 18pt 太字になっていません。"
     },
     {
@@ -78,6 +92,8 @@
       "severity": "ERROR",
       "handler": "checkHeadingStyle",
       "params": { "heading_type": "HEADING2", "size_pt": 15, "bold": true },
+      "autoFixable": true,
+      "autoFix": "fixHeadingStyle",
       "message": "見出し 2 のスタイルが 15pt 太字になっていません。"
     },
     {
@@ -86,6 +102,8 @@
       "severity": "ERROR",
       "handler": "checkHeadingStyle",
       "params": { "heading_type": "HEADING3", "size_pt": 13, "bold": true },
+      "autoFixable": true,
+      "autoFix": "fixHeadingStyle",
       "message": "見出し 3 のスタイルが 13pt 太字になっていません。"
     },
     {
@@ -94,6 +112,8 @@
       "severity": "ERROR",
       "handler": "checkHeadingStyle",
       "params": { "heading_type": "NORMAL", "size_pt": 11, "bold": false, "allow_bold_for_emphasis": true },
+      "autoFixable": true,
+      "autoFix": "fixHeadingStyle",
       "message": "本文のスタイルが 11pt 標準になっていません。"
     },
     {
@@ -102,6 +122,8 @@
       "severity": "ERROR",
       "handler": "checkMinFontSize",
       "params": { "min_size_pt": 11, "exempt_contexts": ["quote_block"] },
+      "autoFixable": true,
+      "autoFix": "fixMinFontSize",
       "message": "11pt 未満のフォントサイズが使用されています（引用以外では禁止）。"
     },
     {
@@ -110,6 +132,8 @@
       "severity": "ERROR",
       "handler": "checkDefaultTextColor",
       "params": { "default_color": "#000000", "exempt_contexts": ["link", "table_header_row"] },
+      "autoFixable": true,
+      "autoFix": "fixDefaultTextColor",
       "message": "本文文字色が #000000（黒 100%）以外になっています。"
     },
     {
@@ -118,6 +142,8 @@
       "severity": "ERROR",
       "handler": "checkForbiddenTextColor",
       "params": { "forbidden_colors": ["#64d8c6"] },
+      "autoFixable": true,
+      "autoFix": "fixForbiddenTextColor",
       "message": "本文文字色にチームみらいミントグリーン（#64d8c6）が使用されています。コントラスト不足のため使用不可です。"
     },
     {
@@ -126,6 +152,8 @@
       "severity": "ERROR",
       "handler": "checkAllowedHighlightColor",
       "params": { "allowed_highlights": [null, "#b4f2e8"] },
+      "autoFixable": true,
+      "autoFix": "fixAllowedHighlightColor",
       "message": "強調用の文字背景色が #b4f2e8（明るいミントグリーン）以外に設定されています。"
     },
     {
@@ -169,6 +197,8 @@
       "severity": "ERROR",
       "handler": "checkTableHeaderRow",
       "params": { "bg": "#666666", "fg": "#ffffff" },
+      "autoFixable": true,
+      "autoFix": "fixTableHeaderRow",
       "message": "表の見出し行が「文字 #ffffff／背景 #666666」になっていません。"
     },
     {
@@ -177,6 +207,8 @@
       "severity": "ERROR",
       "handler": "checkTableHeaderColumn",
       "params": { "bg": "#666666", "fg": "#000000" },
+      "autoFixable": true,
+      "autoFix": "fixTableHeaderColumn",
       "message": "表の見出し列が「文字 #000000／背景 #666666」になっていません。"
     },
     {
@@ -185,6 +217,8 @@
       "severity": "ERROR",
       "handler": "checkTableBorder",
       "params": { "color": "#ffffff", "width_pt": 1 },
+      "autoFixable": true,
+      "autoFix": "fixTableBorder",
       "message": "表の罫線が「色 #ffffff／太さ 1pt」になっていません。"
     },
     {
@@ -213,6 +247,8 @@
         "scope": "last_n_paragraphs",
         "scope_value": 10
       },
+      "autoFixable": true,
+      "autoFix": "fixCreatedUpdatedDate",
       "message": "本文末尾に作成日・更新日の記載が見つかりません。"
     },
     {
