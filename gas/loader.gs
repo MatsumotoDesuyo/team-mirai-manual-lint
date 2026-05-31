@@ -270,6 +270,99 @@ function tmLintApplyFix(findingJson) {
 }
 
 /**
+ * サイドバーから google.script.run 経由で呼ばれる、ERROR 一括自動修正適用関数。
+ * 個別 tmLintApplyFix を N 回呼ぶとリモートロードが N 回発生するため、本関数は
+ * リモートロードを 1 回だけにして N 件を順次処理する。50 件で数分→数秒に短縮。
+ *
+ * 引数: findings（JSON 文字列）。配列。各要素は単体 tmLintApplyFix と同じ Finding 形式
+ * 戻り値: { ok, total, succeeded, failed, results: [{ ok, ruleId, message?, error? }, ...] }
+ *
+ * 設計判断:
+ * - 個別 fix の try/catch で失敗を localize（1 件失敗で全体停止しない）
+ * - 段落 index は fix 中に変動しない（既存 fix 関数は段落の追加・削除をしない。fixCreatedUpdatedDate
+ *   は末尾追加のみで他 Finding の index に影響なし）
+ */
+function tmLintApplyFixBatch(findingsJson) {
+  try {
+    var findings = JSON.parse(findingsJson);
+    if (!Array.isArray(findings) || findings.length === 0) {
+      return { ok: true, total: 0, succeeded: 0, failed: 0, results: [] };
+    }
+
+    // リモートロードは 1 回だけ（個別 tmLintApplyFix の N 倍高速）
+    var sources = tmLintFetchAll_();
+    var rules = JSON.parse(sources.rulesText);
+    for (var i = 0; i < sources.codes.length; i++) {
+      eval(sources.codes[i]);
+    }
+
+    // rules を ID で索引化（O(N) で繰り返し検索しないように）
+    var rulesMap = {};
+    for (var r = 0; r < rules.rules.length; r++) {
+      rulesMap[rules.rules[r].id] = rules.rules[r];
+    }
+
+    var doc = DocumentApp.getActiveDocument();
+    var results = [];
+    var succeeded = 0;
+    var failed = 0;
+
+    for (var f = 0; f < findings.length; f++) {
+      var finding = findings[f];
+      var ruleId = finding && finding.ruleId;
+      var rule = ruleId ? rulesMap[ruleId] : null;
+
+      if (!rule) {
+        results.push({ ok: false, ruleId: ruleId, error: 'ルールが見つかりません' });
+        failed++;
+        continue;
+      }
+      if (rule.autoFixable !== true) {
+        results.push({ ok: false, ruleId: ruleId, error: '自動修正対象外' });
+        failed++;
+        continue;
+      }
+      var fixName = finding.autoFix || rule.autoFix;
+      if (!fixName) {
+        results.push({ ok: false, ruleId: ruleId, error: 'autoFix 関数名未定義' });
+        failed++;
+        continue;
+      }
+      var fixFn = this[fixName];
+      if (typeof fixFn !== 'function') {
+        results.push({ ok: false, ruleId: ruleId, error: 'autoFix 関数未登録: ' + fixName });
+        failed++;
+        continue;
+      }
+
+      try {
+        var result = fixFn(doc, finding, rule.params || {});
+        if (result && result.ok) {
+          results.push({ ok: true, ruleId: ruleId, message: result.message || '' });
+          succeeded++;
+        } else {
+          results.push({ ok: false, ruleId: ruleId, error: (result && result.error) || '不明なエラー' });
+          failed++;
+        }
+      } catch (e) {
+        results.push({ ok: false, ruleId: ruleId, error: e.message });
+        failed++;
+      }
+    }
+
+    return {
+      ok: true,
+      total: findings.length,
+      succeeded: succeeded,
+      failed: failed,
+      results: results
+    };
+  } catch (e) {
+    return { ok: false, error: e.message + (e.stack ? '\n' + e.stack : '') };
+  }
+}
+
+/**
  * サイドバーから google.script.run 経由で呼ばれるジャンプ関数。
  * google.script.run はバウンドスクリプトの **静的関数** しか呼べないので、リモートではなく
  * 本ファイルに置く。

@@ -144,7 +144,18 @@
     .actions {
       font-size: 11px;
       margin-bottom: 6px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
     }
+    .actions .batch-apply-btn {
+      background: #fff3e0;
+      border-color: #fb8c00;
+      color: #e65100;
+      font-weight: bold;
+    }
+    .actions .batch-apply-btn:hover { background: #ffe0b2; border-color: #ef6c00; }
+    .actions .batch-apply-btn:disabled { opacity: 0.5; cursor: wait; }
     .actions button {
       background: #fff;
       border: 1px solid #ccc;
@@ -183,6 +194,7 @@
   </div>
 
   <div class="actions">
+    <button id="batch-apply-btn" class="batch-apply-btn" onclick="batchApply()" title="ERROR で適用可能なものを一括適用（適用済み・解決済みは除外）">⚡ 全 ERROR 一括適用</button>
     <button onclick="clearResolved()" title="この Doc の解決済みマークを全てクリア">解決済みを全クリア</button>
   </div>
 
@@ -314,6 +326,111 @@
           alert('適用エラー: ' + (err && err.message ? err.message : err));
         })
         .tmLintApplyFix(JSON.stringify(f));
+    }
+
+    // 「⚡ 全 ERROR 一括適用」ボタン: canApply かつ未適用・未解決の Finding を順次適用。
+    // ネットワーク往復削減のため tmLintApplyFixBatch（loader.gs 静的）に 1 回で送る。
+    function batchApply() {
+      var targets = [];
+      for (var i = 0; i < FINDINGS.length; i++) {
+        var f = FINDINGS[i];
+        if (canApply(f) && !isApplied(f) && !isResolved(f)) {
+          targets.push({ finding: f, index: i });
+        }
+      }
+      if (targets.length === 0) {
+        alert('適用可能な ERROR がありません（適用済み・解決済みを除く）');
+        return;
+      }
+
+      if (!confirm(targets.length + ' 件の ERROR を一括適用しますか？\n（適用済み・解決済みは対象外）')) {
+        return;
+      }
+
+      var btn = document.getElementById('batch-apply-btn');
+      var originalLabel = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = '⏳ 適用中（' + targets.length + ' 件）…';
+
+      // 各 Finding 行の個別 apply ボタンも「適用中」表示にする
+      for (var t = 0; t < targets.length; t++) {
+        var elem = document.querySelector('.finding[data-idx="' + targets[t].index + '"]');
+        if (elem) {
+          var ab = elem.querySelector('.apply-btn');
+          if (ab) { ab.disabled = true; ab.textContent = '⏳'; }
+        }
+      }
+
+      var findingsToSend = targets.map(function(t) { return t.finding; });
+
+      google.script.run
+        .withSuccessHandler(function(result) {
+          btn.disabled = false;
+          btn.textContent = originalLabel;
+
+          if (!result || !result.ok) {
+            alert('一括適用エラー: ' + (result && result.error ? result.error : '不明なエラー'));
+            // UI を元に戻す
+            for (var t = 0; t < targets.length; t++) {
+              var elem = document.querySelector('.finding[data-idx="' + targets[t].index + '"]');
+              if (elem) {
+                var ab = elem.querySelector('.apply-btn');
+                if (ab) { ab.disabled = false; ab.textContent = '⚡ 適用'; }
+              }
+            }
+            return;
+          }
+
+          var succeeded = result.succeeded || 0;
+          var failed = result.failed || 0;
+          var results = result.results || [];
+
+          // 各 Finding の UI を結果に応じて更新
+          for (var i = 0; i < results.length; i++) {
+            var r = results[i];
+            var t = targets[i];
+            if (!t) continue;
+            var elem = document.querySelector('.finding[data-idx="' + t.index + '"]');
+            if (!elem) continue;
+            var ab = elem.querySelector('.apply-btn');
+            if (!ab) continue;
+            ab.disabled = false;
+            if (r.ok) {
+              ab.textContent = '✅ 適用済';
+              ab.classList.add('applied');
+              elem.classList.add('applied');
+              markApplied(t.finding);
+            } else {
+              ab.textContent = '❌ 失敗';
+              ab.title = r.error || '不明';
+            }
+          }
+
+          // 結果サマリ
+          var msg = '一括適用完了\n成功: ' + succeeded + ' 件\n失敗: ' + failed + ' 件';
+          if (failed > 0) {
+            var failures = results.filter(function(rr) { return !rr.ok; }).slice(0, 5);
+            msg += '\n\n失敗例（最初の ' + failures.length + ' 件）:';
+            for (var j = 0; j < failures.length; j++) {
+              msg += '\n[' + (failures[j].ruleId || '?') + '] ' + (failures[j].error || '不明');
+            }
+          }
+          alert(msg);
+        })
+        .withFailureHandler(function(err) {
+          btn.disabled = false;
+          btn.textContent = originalLabel;
+          alert('一括適用エラー: ' + (err && err.message ? err.message : err));
+          // UI を元に戻す
+          for (var t = 0; t < targets.length; t++) {
+            var elem = document.querySelector('.finding[data-idx="' + targets[t].index + '"]');
+            if (elem) {
+              var ab = elem.querySelector('.apply-btn');
+              if (ab) { ab.disabled = false; ab.textContent = '⚡ 適用'; }
+            }
+          }
+        })
+        .tmLintApplyFixBatch(JSON.stringify(findingsToSend));
     }
 
     function renderFinding(f, idx) {
