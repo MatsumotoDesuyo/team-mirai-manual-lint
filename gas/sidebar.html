@@ -208,6 +208,25 @@
     var RESOLVED_PREFIX = 'tm-lint:resolved:' + DOC_ID + ':';
     var APPLIED_PREFIX = 'tm-lint:applied:' + DOC_ID + ':';
 
+    // 適用済み状態はメモリ内のみで管理（localStorage には保存しない）。
+    // 理由: Ctrl+Z や手動編集で Doc 内容が逆戻りした場合、過去の localStorage マークと
+    //       新しい lint 結果が一致して「全部適用済み」と誤判定される不具合があった。
+    //       再実行のたびに新規 lint 結果として扱う方が運用上自然。
+    //       永続化が必要な「対応済み」マークは「解決済み」(resolved) として別途維持。
+    var APPLIED_IN_SESSION = {};
+
+    // 旧版で localStorage に保存された "applied" マークを起動時に掃除（後方互換）
+    (function purgeLegacyAppliedMarks() {
+      try {
+        var keys = [];
+        for (var i = 0; i < localStorage.length; i++) {
+          var k = localStorage.key(i);
+          if (k && k.indexOf(APPLIED_PREFIX) === 0) keys.push(k);
+        }
+        for (var j = 0; j < keys.length; j++) localStorage.removeItem(keys[j]);
+      } catch (e) {}
+    })();
+
     function isJumpable(f) {
       if (!f.location) return false;
       if (f.location.type !== 'paragraph' && f.location.type !== 'run') return false;
@@ -276,7 +295,7 @@
       } catch (e) {}
     }
 
-    // 適用済み状態の key（解決済みと同じハッシュ規則）
+    // 適用済み状態の key（メモリ内 Object のキーとして使用）
     function appliedKey(f) {
       var sigParts = [
         f.ruleId,
@@ -284,14 +303,13 @@
         (typeof f.startOffset === 'number') ? f.startOffset : '',
         (f.snippet || '').substring(0, 40)
       ];
-      return APPLIED_PREFIX + sigParts.join('|');
+      return sigParts.join('|');
     }
     function isApplied(f) {
-      try { return localStorage.getItem(appliedKey(f)) === '1'; }
-      catch (e) { return false; }
+      return APPLIED_IN_SESSION[appliedKey(f)] === true;
     }
     function markApplied(f) {
-      try { localStorage.setItem(appliedKey(f), '1'); } catch (e) {}
+      APPLIED_IN_SESSION[appliedKey(f)] = true;
     }
 
     function canApply(f) {
